@@ -1,0 +1,146 @@
+---
+description: ENFORCE git commit standards and worktree-aware practices with cross-platform shell compatibility
+globs: ["**/*.git/**", "**/.gitignore"]
+crossRefs:
+  - 007-worktree-management.mdc
+  - 009-shell-compatibility.mdc
+  - 008-rule-update-automation.mdc
+alwaysApply: true
+---
+
+# Git Commit and Worktree Management Standards
+
+## Context
+- When committing changes through any shell (PowerShell/Bash)
+- When working with multiple worktrees
+- When managing feature isolation
+- When tracking AI-assisted changes
+- When handling cross-worktree dependencies
+- When managing IDE state after git operations
+
+## Requirements
+
+### Shell-Aware Command Structure
+- Use shell-appropriate command chaining:
+  ```powershell
+  # PowerShell
+  git add .; git commit -m "type(scope): message"
+  
+  # Bash/Zsh
+  git add . && git commit -m "type(scope): message"
+  ```
+
+### Commit Types and Scopes
+- Use standard commit types:
+  - feat: New feature
+  - fix: Bug fix
+  - docs: Documentation changes
+  - style: Non-functional code changes
+  - refactor: Code restructuring
+  - test: Test-related changes
+  - chore: Build/auxiliary tool changes
+
+- Use worktree-aware scopes:
+  - core: Core functionality
+  - ui: User interface components
+  - mcp: Machine Context Protocol
+  - sync: Synchronization features
+  - docs: Documentation
+  - test: Testing infrastructure
+
+### Cross-Platform Considerations
+- Use double quotes for messages:
+  ```powershell
+  # Both shells
+  git commit -m "feat(scope): message"
+  ```
+
+- Handle multi-line commits:
+  ```powershell
+  # PowerShell
+  git commit -m "feat(scope): message`nDetails"
+  
+  # Bash/Zsh
+  git commit -m "feat(scope): message
+  
+  Details"
+  ```
+
+### Cross-Worktree Changes
+- Reference related worktrees:
+  ```
+  feat(ui,core): add state management
+  ```
+
+- Document dependencies:
+  ```
+  feat(mcp): implement protocol handler
+  
+  Depends-On: core/messaging
+  Related-To: ui/events
+  ```
+
+### Post-Push Workflow
+- After successful push operation:
+  1. Close the current IDE window
+  2. Pull changes to main branch
+  3. Resync worktrees
+  4. Reopen IDE window in desired worktree
+- This ensures:
+  - Proper file system recognition
+  - Correct Cargo integration
+  - Clean IDE state
+  - Synchronized worktree state
+
+## Examples
+
+<example>
+# Good: Shell-aware commit sequence
+# PowerShell
+git add src/ui; `
+    git commit -m "feat(ui): add responsive layout"; `
+    git push origin feature/ui/main
+
+# Bash/Zsh
+git add src/ui && \
+    git commit -m "feat(ui): add responsive layout" && \
+    git push origin feature/ui/main
+</example>
+
+<example type="invalid">
+# Bad: Shell-incompatible commands
+# Will fail in PowerShell
+git add . && git commit -m "update stuff"
+
+# Bad: Missing scope
+git commit -m "added new feature"
+
+# Bad: Inconsistent quotes
+git commit -m 'feat(ui): update' # Use double quotes
+</example>
+
+## Best Practices
+1. Use shell-appropriate syntax
+2. Keep commit messages clear and concise
+3. Reference related worktrees when needed
+4. Use consistent message format
+5. Document cross-worktree dependencies
+6. Use proper scoping
+7. Include relevant ticket numbers
+8. Test commands in both shells
+9. Handle long messages appropriately
+10. Maintain clean commit history
+
+## Technical Metadata
+- Category: Version Control
+- Priority: High
+- Dependencies:
+  - Git 2.25+
+  - PowerShell 5.1+
+  - Bash 4.0+
+- Testing Requirements:
+  - Windows PowerShell
+  - Linux Bash
+  - macOS Zsh
+
+<version>1.2.0</version> 
