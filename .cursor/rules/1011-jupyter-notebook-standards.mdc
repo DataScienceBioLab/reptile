@@ -1,0 +1,141 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: ENFORCE structured organization and style standards for Jupyter notebooks to enhance collaboration and maintainability
+globs: "**/*.ipynb"
+crossRefs:
+  - 1002-python-project-structure.mdc
+  - 1004-python-documentation.mdc
+---
+
+# Jupyter Notebook Standards
+
+## Context
+- When extracting code from Jupyter notebooks
+- When organizing notebook content into modules
+- When converting notebooks to production code
+- When maintaining educational notebooks
+- When implementing homework solutions
+
+## Requirements
+
+### Extraction Workflow
+1. Project Setup
+   - Create standardized project structure
+   - Set up dependency management
+   - Initialize progress tracking
+
+2. Code Organization
+   - Core functionality in `src/package/core/`
+   - Models and algorithms in `src/package/models/`
+   - Utility functions in `src/package/utils/`
+   - Tests in `tests/`
+   - Example notebooks in `notebooks/`
+
+3. Progress Tracking
+   - Use `PROGRESS.md` to track:
+     - Project structure setup
+     - Module implementation status
+     - Documentation status
+     - Test coverage
+     - Next steps
+
+4. Implementation Order
+   - Core data structures and classes
+   - Utility functions and helpers
+   - Main algorithms and models
+   - Visualization and analysis tools
+   - Tests and documentation
+
+### Code Quality Standards
+- Implement proper type hints
+- Add comprehensive docstrings
+- Follow PEP 8 style guide
+- Include usage examples
+- Write unit tests
+
+### Documentation Requirements
+- Module-level docstrings
+- Class and function documentation
+- Usage examples in docstrings
+- README with installation and usage
+- Example notebooks
+
+## Examples
+
+<example>
+# Good: Proper extraction structure
+project/
+├── src/
+│   └── package/
+│       ├── core/
+│       │   └── markov_chain.py
+│       ├── models/
+│       │   └── q_learning.py
+│       └── utils/
+│           └── visualization.py
+├── tests/
+├── notebooks/
+│   ├── original.ipynb
+│   └── examples.ipynb
+└── PROGRESS.md
+</example>
+
+<example type="invalid">
+# Bad: Poor organization
+project/
+├── notebook.ipynb
+├── functions.py
+└── utils.py
+</example>
+
+<example>
+# Good: Progress tracking
+```markdown
+# Progress Tracking
+
+## Completed
+- [x] Project structure
+- [x] Core implementation
+- [x] Basic utilities
+
+## In Progress
+- [ ] Algorithm implementation
+- [ ] Documentation
+- [ ] Testing
+
+## Next Steps
+1. Complete core functionality
+2. Add visualization
+3. Write tests
+```
+</example>
+
+## Best Practices
+1. Maintain clear module separation
+2. Track progress systematically
+3. Write comprehensive tests
+4. Document as you implement
+5. Keep original notebook
+6. Create example notebooks
+7. Use type hints consistently
+8. Follow style guidelines
+9. Add proper error handling
+10. Maintain clean git history
+
+## Technical Metadata
+- Category: Development Standards
+- Priority: High
+- Dependencies:
+  - Python project structure
+  - Documentation standards
+  - Testing framework
+- Validation Requirements:
+  - Directory structure
+  - Code organization
+  - Documentation completeness
+
+<version>1.0.0</version> 

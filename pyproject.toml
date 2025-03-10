@@ -1,39 +1,29 @@
 [tool.poetry]
-name = "reptile"
+name = "markov-rl"
 version = "0.1.0"
-description = "A Python data science project seed for Cursor"
+description = "Markov Chain Analysis and Reinforcement Learning Implementation"
 authors = ["Your Name <your.email@example.com>"]
-readme = "README.md"
-packages = [{include = "src"}]
+packages = [{include = "markov_rl", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-pandas = "^2.0.0"
-polars = "^0.20.0"
 numpy = "^1.24.0"
-scikit-learn = "^1.3.0"
-xgboost = "^2.0.0"
-lightgbm = "^4.0.0"
-sqlalchemy = "^2.0.0"
-psycopg2-binary = "^2.9.0"
-pymysql = "^1.1.0"
-plotly = "^5.0.0"
+pandas = "^2.0.0"
 matplotlib = "^3.7.0"
-seaborn = "^0.12.0"
-jupyter = "^1.0.0"
-python-dotenv = "^1.0.0"
+scipy = "^1.10.0"
+streamlit = "^1.32.0"
+plotly = "^5.19.0"
+sympy = "^1.13.3"
+seaborn = "^0.13.2"
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.0.0"
-isort = "^5.12.0"
-flake8 = "^6.0.0"
-mypy = "^1.5.0"
 pytest = "^7.4.0"
-pytest-cov = "^4.1.0"
-pre-commit = "^3.3.0"
+black = "^23.0.0"
+mypy = "^1.5.0"
+jupyter = "^1.0.0"
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
@@ -51,4 +41,32 @@ python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
-check_untyped_defs = true 
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = [
+    "--strict-markers",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-fail-under=80",
+]
+markers = [
+    "unit: mark test as a unit test",
+    "integration: mark test as an integration test",
+    "slow: mark test as slow running",
+]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+] 

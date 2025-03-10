@@ -1,4 +1,9 @@
 ---
+description: 
+globs: 
+alwaysApply: false
+---
+---
 description: ENFORCE Python code style standards and best practices for consistent, maintainable, and efficient code
 globs: ["**/*.py", "**/*.pyi"]
 crossRefs:
