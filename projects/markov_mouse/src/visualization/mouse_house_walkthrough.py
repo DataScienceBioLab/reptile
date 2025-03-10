@@ -16,8 +16,9 @@ import os
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 
-from src.models.mouse_simulation import MouseSimulation
-from src.utils.matrix_ops import is_stochastic_matrix
+from mouse import MouseHouse
+from markov import MarkovChain
+from utils.matrix_ops import is_stochastic_matrix
 
 def create_room_layout(
     highlighted_room: Optional[int] = None,
