@@ -15,164 +15,31 @@ alwaysApply: true
 - When writing Python code documentation
 - When creating project documentation
 - When documenting APIs and interfaces
-- When maintaining documentation
-- When reviewing documentation
 
 ## Requirements
 
 ### Code Documentation
-- Use Google-style docstrings for all public APIs:
-  ```python
-  # Good: Comprehensive docstring
-  def train_model(
-      model: BaseModel,
-      X: np.ndarray,
-      y: np.ndarray,
-      validation_split: float = 0.2,
-      **kwargs: Any,
-  ) -> dict[str, float]:
-      """Train a machine learning model on the provided data.
-
-      Args:
-          model: The model instance to train
-          X: Training features array of shape (n_samples, n_features)
-          y: Target values array of shape (n_samples,)
-          validation_split: Proportion of data to use for validation
-          **kwargs: Additional training parameters
-
-      Returns:
-          Dictionary containing training metrics:
-              - 'train_score': Training set score
-              - 'val_score': Validation set score
-              - 'training_time': Time taken for training
-
-      Raises:
-          ValueError: If input data shapes are incompatible
-          RuntimeError: If model training fails
-      """
-  ```
+- Use Google-style docstrings for all public APIs
+- Include Args, Returns, Raises, and Examples
 
 ### Module Documentation
-- Include module-level docstrings:
-  ```python
-  # Good: Module documentation
-  """Machine learning model training and evaluation module.
-
-  This module provides functionality for:
-  1. Training machine learning models
-  2. Evaluating model performance
-  3. Cross-validation
-  4. Hyperparameter tuning
-
-  Example:
-      >>> from ml_utils import train_model
-      >>> model = RandomForestClassifier()
-      >>> metrics = train_model(model, X, y)
-  """
-  ```
+- Include module-level docstrings with overview and examples
 
 ### Project Documentation
-- Maintain comprehensive project documentation:
-  ```markdown
-  # Project Name
-
-  ## Overview
-  Brief description of the project and its purpose.
-
-  ## Installation
-  ```bash
-  poetry install
-  ```
-
-  ## Usage
-  Basic usage examples and common patterns.
-
-  ## API Reference
-  Detailed API documentation.
-
-  ## Contributing
-  Guidelines for contributing to the project.
-
-  ## License
-  Project license information.
-  ```
+- Maintain comprehensive project documentation in README.md
+- Include sections: Overview, Installation, Usage, API Reference, Contributing, License
 
 ### API Documentation
-- Document all public APIs with examples:
-  ```python
-  # Good: API documentation with examples
-  class DataProcessor:
-      """Process and transform data for machine learning tasks.
+- Document all public APIs with examples
 
-      This class provides methods for:
-      1. Data cleaning and preprocessing
-      2. Feature engineering
-      3. Data validation
-
-      Example:
-          >>> processor = DataProcessor()
-          >>> clean_data = processor.clean(raw_data)
-      """
-
-      def clean(self, data: pd.DataFrame) -> pd.DataFrame:
-          """Clean and preprocess input data.
-
-          Args:
-              data: Raw input DataFrame
-
-          Returns:
-              Cleaned DataFrame with standardized columns
-
-          Example:
-              >>> df = pd.DataFrame({'col1': [1, 2, None]})
-              >>> clean_df = processor.clean(df)
-              >>> print(clean_df)
-                 col1
-              0   1.0
-              1   2.0
-              2   0.0
-          """
-  ```
-
-## Documentation Structure Diagram
-
-```mermaid
----
-title: Python Documentation Structure
----
-graph TD
-    A[Project Documentation] --> B[README.md]
-    A --> C[API Documentation]
-    A --> D[User Guides]
-    A --> E[Developer Guides]
-    
-    B --> F[Overview]
-    B --> G[Installation]
-    B --> H[Usage]
-    
-    C --> I[Module Docs]
-    C --> J[Class Docs]
-    C --> K[Function Docs]
-    
-    D --> L[Tutorials]
-    D --> M[Examples]
-    
-    E --> N[Contributing]
-    E --> O[Architecture]
-```
-
-## Examples
-
-<example>
-# Good: Complete documentation structure
+### Example
 ```python
 """Machine learning utilities for data processing and model training.
 
-This module provides a comprehensive set of tools for:
-1. Data preprocessing and cleaning
+This module provides tools for:
+1. Data preprocessing
 2. Feature engineering
-3. Model training and evaluation
-4. Performance metrics calculation
+3. Model training
 
 Example:
     >>> from ml_utils import DataProcessor, train_model
@@ -190,37 +57,23 @@ from sklearn.base import BaseEstimator
 class DataProcessor:
     """Process and transform data for machine learning tasks.
 
-    This class provides methods for data preprocessing, cleaning,
-    and feature engineering.
-
-    Attributes:
-        config: Processing configuration dictionary
-        scaler: Optional data scaler instance
+    Methods for data preprocessing and feature engineering.
 
     Example:
         >>> processor = DataProcessor(config={'normalize': True})
         >>> clean_data = processor.process(raw_data)
     """
 
-    def __init__(
-        self,
-        config: Optional[Dict[str, Any]] = None,
-        scaler: Optional[BaseEstimator] = None,
-    ) -> None:
+    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the data processor.
 
         Args:
             config: Processing configuration
-            scaler: Optional data scaler
 
         Example:
-            >>> processor = DataProcessor(
-            ...     config={'normalize': True},
-            ...     scaler=StandardScaler()
-            ... )
+            >>> processor = DataProcessor(config={'normalize': True})
         """
         self.config = config or {}
-        self.scaler = scaler
 
     def process(self, data: pd.DataFrame) -> pd.DataFrame:
         """Process input data according to configuration.
@@ -237,74 +90,23 @@ class DataProcessor:
         Example:
             >>> df = pd.DataFrame({'col1': [1, 2, 3]})
             >>> processed = processor.process(df)
-            >>> print(processed)
-               col1
-            0   0.0
-            1   0.5
-            2   1.0
         """
         if data.empty:
             raise ValueError("Input DataFrame cannot be empty")
-        
-        result = data.copy()
-        if self.config.get('normalize') and self.scaler:
-            result = pd.DataFrame(
-                self.scaler.fit_transform(result),
-                columns=result.columns
-            )
-        return result
+        return data
 ```
-</example>
-
-<example type="invalid">
-# Bad: Poor documentation
-```python
-def process_data(data):
-    # Process the data
-    result = data.copy()
-    if config.get('normalize'):
-        result = scaler.fit_transform(result)
-    return result
-
-class DataProcessor:
-    def __init__(self, config=None, scaler=None):
-        self.config = config
-        self.scaler = scaler
-
-    def process(self, data):
-        return process_data(data)
-# Missing docstrings
-# Missing type hints
-# Missing examples
-# Missing error handling
-# Missing module documentation
-```
-</example>
 
 ## Best Practices
-1. Write comprehensive docstrings
-2. Include usage examples
-3. Document all public APIs
+1. Use comprehensive docstrings
+2. Maintain clear project documentation
+3. Include examples in API docs
 4. Keep documentation up to date
-5. Use clear and concise language
-6. Include type hints
-7. Document exceptions
-8. Provide code examples
-9. Maintain consistent style
-10. Review documentation regularly
 
 ## Technical Metadata
 - Category: Python Development
 - Priority: High
 - Dependencies:
+  - Python 3.10+
   - Sphinx
-  - sphinx-rtd-theme
-  - docutils
-  - myst-parser
-- Validation Requirements:
-  - Documentation coverage
-  - Example validity
-  - Link checking
-  - Style consistency
 
 <version>1.0.0</version> 

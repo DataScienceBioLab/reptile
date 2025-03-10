@@ -13,191 +13,67 @@ alwaysApply: true
 ## Context
 - When writing or modifying Python code
 - When implementing new features
-- When refactoring existing code
 - When reviewing Python code
-- When setting up Python projects
 
 ## Requirements
 
 ### Code Formatting
-- Use Black for code formatting with default settings:
-  ```python
-  # Good: Black-formatted code
-  def process_data(
-      data: pd.DataFrame,
-      columns: list[str],
-      threshold: float = 0.5,
-  ) -> pd.DataFrame:
-      """Process input data with specified columns and threshold."""
-      return data[columns].clip(lower=threshold)
-  ```
-
-- Follow PEP 8 guidelines for:
-  - Maximum line length: 88 characters (Black default)
-  - Use 4 spaces for indentation
+- Use Black for code formatting with default settings (88 char line length)
+- Follow PEP 8 guidelines:
+  - 4 spaces for indentation
   - Two blank lines between top-level classes/functions
   - One blank line between methods
   - No trailing whitespace
 
 ### Type Hints
-- Use type hints for all function parameters and return values:
-  ```python
-  # Good: Complete type hints
-  from typing import TypeVar, Sequence
-
-  T = TypeVar("T")
-
-  def find_first(
-      items: Sequence[T],
-      predicate: Callable[[T], bool],
-  ) -> T | None:
-      """Find first item matching predicate."""
-      return next((item for item in items if predicate(item)), None)
-  ```
+- Use type hints for all function parameters and return values
+- Import types from `typing` module
+- Use `TypeVar` for generic types
+- Specify `Optional` types with `| None` syntax (Python 3.10+)
 
 ### Docstrings
-- Use Google-style docstrings for all public functions and classes:
-  ```python
-  # Good: Google-style docstring
-  def calculate_metrics(
-      predictions: np.ndarray,
-      targets: np.ndarray,
-      weights: np.ndarray | None = None,
-  ) -> dict[str, float]:
-      """Calculate evaluation metrics for predictions.
-
-      Args:
-          predictions: Model predictions array
-          targets: Ground truth values
-          weights: Optional sample weights
-
-      Returns:
-          Dictionary of metric names and values
-
-      Raises:
-          ValueError: If predictions and targets have different shapes
-      """
-  ```
+- Use Google-style docstrings for public functions and classes
+- Include: Args, Returns, Raises (if applicable)
+- Keep docstrings concise but informative
 
 ### Error Handling
-- Use specific exception types and custom exceptions:
-  ```python
-  # Good: Specific error handling
-  class DataValidationError(Exception):
-      """Raised when data validation fails."""
-      pass
-
-  def validate_data(data: pd.DataFrame) -> None:
-      if data.empty:
-          raise DataValidationError("DataFrame cannot be empty")
-      if not all(col in data.columns for col in REQUIRED_COLUMNS):
-          raise DataValidationError(f"Missing required columns: {REQUIRED_COLUMNS}")
-  ```
+- Use specific exception types
+- Create custom exceptions for domain-specific errors
+- Handle exceptions at appropriate levels
+- Avoid bare except clauses
 
 ### Testing
-- Write comprehensive unit tests:
-  ```python
-  # Good: Well-structured test
-  def test_process_data():
-      # Arrange
-      data = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
-      columns = ["col1", "col2"]
-      threshold = 1.5
+- Write unit tests for all functions
+- Follow Arrange-Act-Assert pattern
+- Use descriptive test names
+- Test edge cases and error conditions
 
-      # Act
-      result = process_data(data, columns, threshold)
-
-      # Assert
-      assert isinstance(result, pd.DataFrame)
-      assert all(result[columns] >= threshold)
-  ```
-
-## Examples
-
-<example>
-# Good: Complete Python module structure
-"""Module for data processing operations."""
-
-from typing import TypeVar, Sequence, Callable
-import numpy as np
-import pandas as pd
+## Example
+```python
+from typing import TypeVar, Sequence
 
 T = TypeVar("T")
 
-class DataProcessor:
-    """Handles data processing operations with validation."""
+def find_first(items: Sequence[T], predicate: Callable[[T], bool]) -> T | None:
+    """Find first item matching predicate.
 
-    def __init__(self, config: dict[str, float]) -> None:
-        """Initialize processor with configuration.
+    Args:
+        items: Sequence to search
+        predicate: Function to test items
 
-        Args:
-            config: Processing configuration parameters
-        """
-        self.config = config
-
-    def process(
-        self,
-        data: pd.DataFrame,
-        columns: list[str],
-    ) -> pd.DataFrame:
-        """Process input data according to configuration.
-
-        Args:
-            data: Input DataFrame
-            columns: Columns to process
-
-        Returns:
-            Processed DataFrame
-
-        Raises:
-            ValueError: If data validation fails
-        """
-        self._validate_input(data, columns)
-        return self._apply_processing(data, columns)
-
-    def _validate_input(
-        self,
-        data: pd.DataFrame,
-        columns: list[str],
-    ) -> None:
-        """Validate input data and columns."""
-        if data.empty:
-            raise ValueError("DataFrame cannot be empty")
-        if not all(col in data.columns for col in columns):
-            raise ValueError(f"Missing columns: {columns}")
-</example>
-
-<example type="invalid">
-# Bad: Poor Python code structure
-import numpy as np
-import pandas as pd
-from typing import *
-
-def process_data(data, cols, threshold=0.5):
-    # Process the data
-    result = data[cols].clip(lower=threshold)
-    return result
-
-class DataProcessor:
-    def __init__(self, config):
-        self.config = config
-
-    def process(self, data, cols):
-        # Process data
-        return process_data(data, cols)
-</example>
+    Returns:
+        First matching item or None
+    """
+    return next((item for item in items if predicate(item)), None)
+```
 
 ## Best Practices
 1. Use type hints consistently
-2. Write comprehensive docstrings
+2. Write clear docstrings
 3. Follow PEP 8 guidelines
 4. Use Black for formatting
 5. Implement proper error handling
-6. Write unit tests for all functions
-7. Use meaningful variable names
-8. Keep functions focused and small
-9. Use appropriate data structures
-10. Document complex algorithms
+6. Write comprehensive tests
 
 ## Technical Metadata
 - Category: Python Development
@@ -207,10 +83,5 @@ class DataProcessor:
   - Black
   - mypy
   - pytest
-- Validation Requirements:
-  - Type checking
-  - Code formatting
-  - Test coverage
-  - Documentation completeness
 
-<version>1.0.0</version> 
+<version>1.0.1</version> 
