@@ -14,7 +14,7 @@ A robust, standardized foundation for data science projects using Python. This t
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/reptile.git
+   git clone https://github.com/DataScienceBioLab/reptile.git
    cd reptile
    ```
 

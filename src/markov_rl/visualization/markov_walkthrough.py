@@ -9,8 +9,8 @@ import plotly.graph_objects as go
 import numpy as np
 from typing import Optional, Tuple, List, Dict
 import sympy as sp
-from ..core.markov_chain import MarkovChain
-from ..utils.matrix_ops import (
+from src.markov_rl.core.markov_chain import MarkovChain
+from src.markov_rl.utils.matrix_ops import (
     is_stochastic_matrix,
     normalize_matrix_rows,
     is_symmetric_matrix,

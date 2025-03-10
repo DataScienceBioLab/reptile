@@ -10,8 +10,14 @@ import plotly.graph_objects as go
 import numpy as np
 from typing import List, Dict, Optional
 import sympy as sp
-from ..models.mouse_simulation import MouseSimulation
-from ..utils.matrix_ops import is_stochastic_matrix
+import sys
+import os
+
+# Add the parent directory to the Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+
+from src.markov_rl.models.mouse_simulation import MouseSimulation
+from src.markov_rl.utils.matrix_ops import is_stochastic_matrix
 
 def create_room_layout(
     highlighted_room: Optional[int] = None,

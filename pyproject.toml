@@ -2,7 +2,7 @@
 name = "markov-rl"
 version = "0.1.0"
 description = "Markov Chain Analysis and Reinforcement Learning Implementation"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Kevin Mok <mokkevin@msu.edu>"]
 packages = [{include = "markov_rl", from = "src"}]
 
 [tool.poetry.dependencies]
@@ -11,8 +11,8 @@ numpy = "^1.24.0"
 pandas = "^2.0.0"
 matplotlib = "^3.7.0"
 scipy = "^1.10.0"
-streamlit = "^1.32.0"
-plotly = "^5.19.0"
+streamlit = "1.32.0"
+plotly = "5.19.0"
 sympy = "^1.13.3"
 seaborn = "^0.13.2"
 

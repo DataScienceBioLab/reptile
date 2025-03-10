@@ -232,6 +232,27 @@ graph TD
 ### Challenge: Visualization Testing
 > ℹ️ **Solution**: Implemented non-visual assertions for matplotlib outputs
 
+### Challenge: Package Import Stability
+> ℹ️ **Issue**: Relative imports in visualization modules caused issues when running Streamlit apps directly
+> 
+> **Solution**: Implemented multiple approaches to ensure stable imports:
+> 1. Added `src` directory to PYTHONPATH in run scripts
+> 2. Created entry point script (`run_app.py`) with proper path setup
+> 3. Added PowerShell script (`run_app.ps1`) for Windows environments
+> 
+> **Recommendation**: For future clones, use one of these methods:
+> ```powershell
+> # Method 1: Set PYTHONPATH and run directly
+> $env:PYTHONPATH = "path/to/repo/src"
+> streamlit run src/markov_rl/visualization/mouse_house_walkthrough.py
+> 
+> # Method 2: Use the entry point script
+> python run_app.py
+> 
+> # Method 3: Use the PowerShell script (Windows)
+> .\run_app.ps1
+> ```
+
 ## Notes and Considerations
 
 > ℹ️ **Current Status**
