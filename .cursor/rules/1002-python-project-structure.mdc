@@ -1,0 +1,188 @@
+---
+description: ENFORCE standardized Python project structure and organization for maintainable and scalable projects
+globs: ["pyproject.toml", "setup.py", "setup.cfg", "**/__init__.py", "**/conftest.py"]
+crossRefs:
+  - 001-rule-generator.mdc
+  - 002-rule-organization.mdc
+  - 1000-python-code-style.mdc
+alwaysApply: true
+---
+
+# Python Project Structure Standards
+
+## Context
+- When creating new Python projects
+- When organizing existing Python codebases
+- When setting up project dependencies
+- When managing project configuration
+- When implementing project packaging
+
+## Requirements
+
+### Project Layout
+- Follow standard Python project structure:
+  ```
+  project/
+  ├── src/                    # Source code
+  │   └── package/           # Main package
+  │       ├── __init__.py
+  │       ├── core/          # Core functionality
+  │       ├── utils/         # Utility functions
+  │       └── tests/         # Package-specific tests
+  ├── tests/                 # Project-wide tests
+  ├── docs/                  # Documentation
+  ├── notebooks/             # Jupyter notebooks
+  ├── data/                  # Data files
+  ├── pyproject.toml         # Project configuration
+  ├── README.md             # Project documentation
+  └── .gitignore            # Git ignore rules
+  ```
+
+### Package Configuration
+- Use pyproject.toml for modern Python packaging:
+  ```toml
+  [tool.poetry]
+  name = "project-name"
+  version = "0.1.0"
+  description = "Project description"
+  authors = ["Author <author@example.com>"]
+  packages = [{include = "src"}]
+
+  [tool.poetry.dependencies]
+  python = "^3.10"
+  pandas = "^2.0.0"
+  numpy = "^1.24.0"
+
+  [tool.poetry.group.dev.dependencies]
+  pytest = "^7.4.0"
+  black = "^23.0.0"
+  mypy = "^1.5.0"
+  ```
+
+### Module Organization
+- Use proper Python module structure:
+  ```python
+  # src/package/__init__.py
+  """Package description and version."""
+
+  __version__ = "0.1.0"
+
+  # src/package/core/__init__.py
+  """Core functionality exports."""
+
+  from .processor import DataProcessor
+  from .validator import DataValidator
+
+  __all__ = ["DataProcessor", "DataValidator"]
+  ```
+
+### Dependency Management
+- Use Poetry for dependency management
+- Maintain separate dev dependencies
+- Pin dependency versions
+- Use virtual environments
+
+## Project Structure Diagram
+
+```mermaid
+---
+title: Python Project Structure
+---
+graph TD
+    A[Project Root] --> B[src/]
+    A --> C[tests/]
+    A --> D[docs/]
+    A --> E[notebooks/]
+    A --> F[data/]
+    A --> G[pyproject.toml]
+    A --> H[README.md]
+    
+    B --> I[package/]
+    I --> J[core/]
+    I --> K[utils/]
+    I --> L[tests/]
+    
+    C --> M[unit/]
+    C --> N[integration/]
+    
+    D --> O[api/]
+    D --> P[guides/]
+    
+    F --> Q[raw/]
+    F --> R[processed/]
+```
+
+## Examples
+
+<example>
+# Good: Well-structured Python project
+```
+data-science-project/
+├── src/
+│   └── ds_project/
+│       ├── __init__.py
+│       ├── core/
+│       │   ├── __init__.py
+│       │   ├── processor.py
+│       │   └── validator.py
+│       └── utils/
+│           ├── __init__.py
+│           └── helpers.py
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py
+│   └── test_processor.py
+├── docs/
+│   ├── api/
+│   └── guides/
+├── notebooks/
+│   └── exploration.ipynb
+├── data/
+│   ├── raw/
+│   └── processed/
+├── pyproject.toml
+└── README.md
+```
+</example>
+
+<example type="invalid">
+# Bad: Poor project structure
+```
+project/
+├── main.py
+├── utils.py
+├── test.py
+├── requirements.txt
+└── data.csv
+# Missing proper organization
+# Missing package structure
+# Missing documentation
+# Missing configuration
+</example>
+
+## Best Practices
+1. Follow standard Python packaging
+2. Use modern dependency management
+3. Maintain clear module hierarchy
+4. Separate source and test code
+5. Organize documentation properly
+6. Use appropriate file naming
+7. Implement proper imports
+8. Maintain clean directory structure
+9. Use version control effectively
+10. Document project setup
+
+## Technical Metadata
+- Category: Python Development
+- Priority: High
+- Dependencies:
+  - Poetry
+  - Python 3.10+
+  - Git
+- Validation Requirements:
+  - Directory structure
+  - Package configuration
+  - Import organization
+  - Documentation completeness
+
+<version>1.0.0</version> 

@@ -1,0 +1,532 @@
+---
+description: ENFORCE comprehensive Python type hinting and static analysis standards for type-safe code
+globs: ["**/*.py", "py.typed", "mypy.ini", "setup.cfg"]
+crossRefs:
+  - 001-rule-generator.mdc
+  - 002-rule-organization.mdc
+  - 1000-python-code-style.mdc
+  - 1005-python-error-handling.mdc
+  - 1006-python-performance.mdc
+alwaysApply: true
+---
+
+# Python Type Hints and Static Analysis Standards
+
+## Context
+- When implementing type hints
+- When using static type checking
+- When defining generic types
+- When creating protocols
+- When ensuring type safety
+- When configuring type checking
+- When implementing type narrowing
+- When using type inference
+- When handling complex type scenarios
+- When integrating with external libraries
+
+## Requirements
+
+### Type Checker Configuration
+- Configure mypy for strict type checking:
+  ```ini
+  # mypy.ini
+  [mypy]
+  python_version = 3.10
+  warn_return_any = True
+  warn_unused_configs = True
+  disallow_untyped_defs = True
+  disallow_incomplete_defs = True
+  check_untyped_defs = True
+  disallow_untyped_decorators = True
+  no_implicit_optional = True
+  warn_redundant_casts = True
+  warn_unused_ignores = True
+  warn_no_return = True
+  warn_unreachable = True
+  strict_optional = True
+  ```
+
+### Type Hint Implementation
+- Use comprehensive type hints:
+  ```python
+  # Good: Well-typed function with complex types
+  from typing import (
+      Any, Dict, List, Optional, Protocol, TypeVar,
+      Union, runtime_checkable, TypeAlias, TypedDict,
+      Callable, Awaitable, Coroutine, TypeGuard, cast
+  )
+  from dataclasses import dataclass
+  from datetime import datetime
+  from enum import Enum
+
+  T = TypeVar('T', bound='Comparable')
+  R = TypeVar('R')
+
+  class UserRole(str, Enum):
+      """User role enumeration."""
+      ADMIN = "admin"
+      USER = "user"
+      GUEST = "guest"
+
+  class Comparable(Protocol):
+      """Protocol for comparable objects."""
+      def __lt__(self, other: Any) -> bool: ...
+
+  @dataclass
+  class User:
+      """User data with type hints."""
+      id: int
+      name: str
+      email: str
+      created_at: datetime
+      preferences: Dict[str, Any]
+      role: UserRole
+      is_active: bool = True
+
+  UserList: TypeAlias = List[User]
+  UserDict: TypeAlias = Dict[int, User]
+  UserCallback: TypeAlias = Callable[[User], bool]
+
+  def process_users(
+      users: UserList,
+      filter_func: Optional[UserCallback] = None,
+      include_inactive: bool = False
+  ) -> UserDict:
+      """Process users with type safety."""
+      result: UserDict = {}
+      for user in users:
+          if not include_inactive and not user.is_active:
+              continue
+          if filter_func is None or filter_func(user):
+              result[user.id] = user
+      return result
+  ```
+
+### Type Narrowing
+- Implement proper type narrowing:
+  ```python
+  # Good: Type narrowing with type guards
+  def is_valid_user(data: Any) -> TypeGuard[Dict[str, Any]]:
+      """Type guard for user data validation."""
+      if not isinstance(data, dict):
+          return False
+      required = {"id", "name", "email"}
+      return all(key in data for key in required)
+
+  def process_user_data(data: Any) -> Optional[User]:
+      """Process user data with type narrowing."""
+      if is_valid_user(data):
+          # Type checker knows data is Dict[str, Any]
+          return User(
+              id=int(data["id"]),
+              name=str(data["name"]),
+              email=str(data["email"]),
+              created_at=datetime.utcnow(),
+              preferences={},
+              role=UserRole.USER
+          )
+      return None
+  ```
+
+### Protocol Definitions
+- Use protocols for structural typing:
+  ```python
+  # Good: Protocol usage with async support
+  @runtime_checkable
+  class AsyncDataSource(Protocol):
+      """Protocol for async data sources."""
+      async def read(self) -> bytes: ...
+      async def write(self, data: bytes) -> None: ...
+      async def close(self) -> None: ...
+
+  class AsyncFileDataSource:
+      """Async file-based data source implementation."""
+      def __init__(self, filepath: str):
+          self.filepath = filepath
+          self._file: Optional[IO[bytes]] = None
+
+      async def read(self) -> bytes:
+          async with aiofiles.open(self.filepath, 'rb') as f:
+              return await f.read()
+
+      async def write(self, data: bytes) -> None:
+          async with aiofiles.open(self.filepath, 'wb') as f:
+              await f.write(data)
+
+      async def close(self) -> None:
+          if self._file:
+              self._file.close()
+              self._file = None
+
+  async def process_data(source: AsyncDataSource) -> None:
+      """Process data from any async source."""
+      try:
+          data = await source.read()
+          # Process data
+      finally:
+          await source.close()
+  ```
+
+### Generic Type Usage
+- Implement generic types properly:
+  ```python
+  # Good: Advanced generic type implementation
+  T = TypeVar('T')
+  R = TypeVar('R')
+  E = TypeVar('E', bound=Exception)
+
+  class Result(Generic[T, E]):
+      """Generic result type with error handling."""
+      def __init__(
+          self,
+          value: Optional[T] = None,
+          error: Optional[E] = None
+      ):
+          if value is not None and error is not None:
+              raise ValueError("Cannot have both value and error")
+          self.value = value
+          self.error = error
+
+      def is_success(self) -> bool:
+          """Check if result is successful."""
+          return self.error is None
+
+      def map(self, func: Callable[[T], R]) -> 'Result[R, E]':
+          """Transform result value."""
+          if self.is_success():
+              return Result(value=func(self.value))
+          return Result(error=self.error)
+
+      def flat_map(
+          self,
+          func: Callable[[T], 'Result[R, E]']
+      ) -> 'Result[R, E]':
+          """Transform result with nested result."""
+          if self.is_success():
+              return func(self.value)
+          return Result(error=self.error)
+
+      def recover(
+          self,
+          func: Callable[[E], T]
+      ) -> 'Result[T, E]':
+          """Recover from error."""
+          if not self.is_success():
+              return Result(value=func(self.error))
+          return self
+
+  class OptionalResult(Result[Optional[T], E]):
+      """Optional result type."""
+      def unwrap(self) -> T:
+          """Unwrap optional value."""
+          if not self.is_success():
+              raise self.error
+          if self.value is None:
+              raise ValueError("Cannot unwrap None")
+          return self.value
+  ```
+
+### TypedDict Usage
+- Use TypedDict for dictionary types:
+  ```python
+  # Good: Advanced TypedDict usage
+  class UserData(TypedDict, total=True):
+      """Typed dictionary for user data."""
+      id: int
+      name: str
+      email: str
+      preferences: Dict[str, Any]
+      role: UserRole
+      created_at: datetime
+
+  class PartialUserData(TypedDict, total=False):
+      """Optional user data fields."""
+      id: int
+      name: str
+      email: str
+      preferences: Dict[str, Any]
+      role: UserRole
+      created_at: datetime
+
+  class UserResponse(TypedDict, total=True):
+      """API response type."""
+      success: bool
+      data: Optional[UserData]
+      error: Optional[str]
+
+  def create_user(data: UserData) -> User:
+      """Create user from typed data."""
+      return User(**data)
+
+  def update_user(user: User, data: PartialUserData) -> User:
+      """Update user with partial data."""
+      return User(**{**user.__dict__, **data})
+
+  def format_response(
+      success: bool,
+      data: Optional[UserData] = None,
+      error: Optional[str] = None
+  ) -> UserResponse:
+      """Format API response."""
+      return UserResponse(
+          success=success,
+          data=data,
+          error=error
+      )
+  ```
+
+### Type Inference
+- Leverage type inference appropriately:
+  ```python
+  # Good: Type inference usage
+  def process_items(items: List[T]) -> List[T]:
+      """Process items with type inference."""
+      return [item for item in items if item is not None]
+
+  def create_user_dict(users: List[User]) -> Dict[int, User]:
+      """Create user dictionary with type inference."""
+      return {user.id: user for user in users}
+
+  def filter_active_users(users: List[User]) -> List[User]:
+      """Filter active users with type inference."""
+      return [user for user in users if user.is_active]
+  ```
+
+## Type Safety Flow
+
+```mermaid
+---
+title: Python Type Safety Flow
+---
+graph TD
+    A[Code] --> B{Type Hints}
+    B -->|Present| C[Static Analysis]
+    B -->|Missing| D[Add Type Hints]
+    
+    C --> E{Type Check}
+    D --> C
+    
+    E -->|Pass| F[Runtime Checks]
+    E -->|Fail| G[Fix Issues]
+    
+    F --> H{Type Safety}
+    G --> C
+    
+    H -->|Safe| I[Deploy]
+    H -->|Unsafe| J[Add Runtime Checks]
+    
+    J --> I
+    
+    subgraph "Type Safety Layers"
+        K[Static Type Checking]
+        L[Runtime Type Checking]
+        M[Type Guards]
+        N[Protocols]
+        O[Generic Types]
+    end
+    
+    K --> H
+    L --> H
+    M --> H
+    N --> H
+    O --> H
+```
+
+## Examples
+
+<example>
+# Good: Complete type-safe implementation
+```python
+"""Type-safe data processing module."""
+
+from typing import (
+    Any, Callable, Dict, Generic, List, Optional,
+    Protocol, TypeAlias, TypeVar, Union, runtime_checkable,
+    TypeGuard, cast, Awaitable, Coroutine
+)
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+
+T = TypeVar('T')
+R = TypeVar('R')
+E = TypeVar('E', bound=Exception)
+
+class ProcessingStatus(str, Enum):
+    """Processing status enumeration."""
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+@runtime_checkable
+class DataProcessor(Protocol):
+    """Protocol for data processors."""
+    def process(self, data: Any) -> Any: ...
+
+@dataclass
+class ProcessingResult(Generic[T, E]):
+    """Generic processing result."""
+    value: Optional[T]
+    status: ProcessingStatus
+    error: Optional[E]
+    timestamp: datetime
+    metadata: Dict[str, Any]
+
+    def is_success(self) -> bool:
+        """Check if processing was successful."""
+        return self.status == ProcessingStatus.COMPLETED
+
+    def map(self, func: Callable[[T], R]) -> 'ProcessingResult[R, E]':
+        """Transform result value."""
+        if self.is_success():
+            return ProcessingResult(
+                value=func(self.value),
+                status=self.status,
+                error=None,
+                timestamp=self.timestamp,
+                metadata=self.metadata
+            )
+        return ProcessingResult(
+            value=None,
+            status=self.status,
+            error=self.error,
+            timestamp=self.timestamp,
+            metadata=self.metadata
+        )
+
+class DataTransformer:
+    """Type-safe data transformer."""
+
+    def __init__(
+        self,
+        processor: DataProcessor,
+        validator: Optional[Callable[[Any], bool]] = None
+    ):
+        """Initialize transformer."""
+        self.processor = processor
+        self.validator = validator
+
+    def transform(
+        self,
+        data: Any
+    ) -> ProcessingResult[Any, Exception]:
+        """Transform data with type safety."""
+        try:
+            if self.validator and not self.validator(data):
+                raise ValueError("Invalid input data")
+
+            result = self.processor.process(data)
+            return ProcessingResult(
+                value=result,
+                status=ProcessingStatus.COMPLETED,
+                error=None,
+                timestamp=datetime.utcnow(),
+                metadata={"processed": True}
+            )
+        except Exception as e:
+            return ProcessingResult(
+                value=None,
+                status=ProcessingStatus.FAILED,
+                error=e,
+                timestamp=datetime.utcnow(),
+                metadata={"processed": False}
+            )
+
+    def batch_transform(
+        self,
+        items: List[Any]
+    ) -> List[ProcessingResult[Any, Exception]]:
+        """Transform multiple items."""
+        return [self.transform(item) for item in items]
+
+class UserProcessor(DataProcessor):
+    """User data processor."""
+
+    def process(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Process user data."""
+        return {
+            "id": int(data["id"]),
+            "name": str(data["name"]),
+            "email": str(data["email"])
+        }
+
+def validate_user(data: Any) -> TypeGuard[Dict[str, Any]]:
+    """Type guard for user data validation."""
+    if not isinstance(data, dict):
+        return False
+    required = {"id", "name", "email"}
+    return all(key in data for key in required)
+
+# Usage example
+def process_user_data() -> None:
+    """Process user data with type safety."""
+    processor = UserProcessor()
+    transformer = DataTransformer(processor, validate_user)
+
+    user_data = {
+        "id": "123",
+        "name": "John Doe",
+        "email": "john@example.com"
+    }
+
+    result = transformer.transform(user_data)
+    if result.is_success():
+        print(f"Processed user: {result.value}")
+    else:
+        print(f"Processing failed: {result.error}")
+```
+</example>
+
+<example type="invalid">
+# Bad: Poor type hinting
+```python
+def process_data(data):
+    # Missing type hints
+    result = data.copy()
+    return result
+
+class DataProcessor:
+    def process(self, data):
+        # Missing return type
+        return data
+# Missing type hints
+# Missing generic types
+# Missing protocols
+# Missing type safety
+```
+</example>
+
+## Best Practices
+1. Use comprehensive type hints
+2. Implement protocols for structural typing
+3. Use generic types appropriately
+4. Add runtime type checking
+5. Use TypedDict for dictionary types
+6. Document type constraints
+7. Enable strict type checking
+8. Use type aliases for clarity
+9. Implement proper error handling
+10. Regular type safety audits
+11. Use type guards for validation
+12. Leverage type inference
+13. Implement proper type narrowing
+14. Use enums for constants
+15. Configure type checking tools
+
+## Technical Metadata
+- Category: Python Development
+- Priority: High
+- Dependencies:
+  - mypy
+  - typing-extensions
+  - typeguard
+  - pyright
+- Validation Requirements:
+  - Type hint coverage
+  - Static analysis
+  - Runtime type checking
+  - Type safety verification
+  - Configuration validation
+
+<version>1.1.0</version> 

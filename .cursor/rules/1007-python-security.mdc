@@ -1,0 +1,896 @@
+---
+description: ENFORCE Python security standards for secure and robust applications
+globs: ["**/*.py", "**/*.yaml", "**/*.json", "**/*.env", "requirements.txt", "setup.py", "pyproject.toml"]
+crossRefs:
+  - 001-rule-generator.mdc
+  - 002-rule-organization.mdc
+  - 1000-python-code-style.mdc
+  - 1005-python-error-handling.mdc
+  - 1010-python-types.mdc
+alwaysApply: true
+---
+
+# Python Security Standards
+
+## Context
+- When handling sensitive data
+- When implementing authentication
+- When processing user input
+- When managing secrets
+- When making network requests
+- When handling file operations
+- When implementing authorization
+- When managing session data
+- When handling cryptographic operations
+- When implementing API security
+
+## Requirements
+
+### Input Validation
+- Implement strict input validation:
+  ```python
+  # Good: Comprehensive input validation
+  from typing import Any, Dict, List, Optional, Union
+  from pydantic import BaseModel, Field, validator, EmailStr, constr
+  from datetime import datetime
+  import re
+
+  class UserInput(BaseModel):
+      """User input validation model."""
+      username: constr(min_length=3, max_length=50, pattern=r'^[a-zA-Z0-9_-]+$')
+      email: EmailStr
+      password: constr(min_length=8, max_length=100)
+      age: Optional[int] = Field(None, ge=0, le=150)
+      roles: List[str] = Field(default_factory=list)
+      metadata: Dict[str, Any] = Field(default_factory=dict)
+      created_at: datetime = Field(default_factory=datetime.utcnow)
+
+      @validator('password')
+      def validate_password_strength(cls, v: str) -> str:
+          """Validate password strength."""
+          if not re.search(r'[A-Z]', v):
+              raise ValueError('Password must contain at least one uppercase letter')
+          if not re.search(r'[a-z]', v):
+              raise ValueError('Password must contain at least one lowercase letter')
+          if not re.search(r'\d', v):
+              raise ValueError('Password must contain at least one number')
+          if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+              raise ValueError('Password must contain at least one special character')
+          return v
+
+      @validator('roles')
+      def validate_roles(cls, v: List[str]) -> List[str]:
+          """Validate user roles."""
+          valid_roles = {'admin', 'user', 'moderator', 'guest'}
+          if not all(role in valid_roles for role in v):
+              raise ValueError('Invalid role specified')
+          return v
+
+  class InputSanitizer:
+      """Input sanitization and validation."""
+      def __init__(self):
+          self._validators: Dict[str, Any] = {}
+
+      def register_validator(
+          self,
+          field: str,
+          validator: Callable[[Any], Any]
+      ) -> None:
+          """Register field validator."""
+          self._validators[field] = validator
+
+      def sanitize_string(self, value: str) -> str:
+          """Sanitize string input."""
+          # Remove null bytes
+          value = value.replace('\0', '')
+          # Remove control characters
+          value = ''.join(char for char in value if ord(char) >= 32)
+          # Trim whitespace
+          return value.strip()
+
+      def sanitize_dict(
+          self,
+          data: Dict[str, Any]
+      ) -> Dict[str, Any]:
+          """Sanitize dictionary input."""
+          sanitized: Dict[str, Any] = {}
+          for key, value in data.items():
+              if isinstance(value, str):
+                  sanitized[key] = self.sanitize_string(value)
+              elif isinstance(value, dict):
+                  sanitized[key] = self.sanitize_dict(value)
+              elif isinstance(value, list):
+                  sanitized[key] = self.sanitize_list(value)
+              else:
+                  sanitized[key] = value
+          return sanitized
+
+      def sanitize_list(self, data: List[Any]) -> List[Any]:
+          """Sanitize list input."""
+          return [
+              self.sanitize_string(item) if isinstance(item, str)
+              else self.sanitize_dict(item) if isinstance(item, dict)
+              else self.sanitize_list(item) if isinstance(item, list)
+              else item
+              for item in data
+          ]
+
+      def validate(
+          self,
+          data: Dict[str, Any],
+          schema: Type[BaseModel]
+      ) -> BaseModel:
+          """Validate data against schema."""
+          try:
+              # Sanitize input
+              sanitized = self.sanitize_dict(data)
+              # Validate against schema
+              return schema(**sanitized)
+          except ValidationError as e:
+              raise ValueError(f"Validation error: {e}")
+  ```
+
+### Secret Management
+- Implement secure secret management:
+  ```python
+  # Good: Secure secret management
+  from typing import Any, Dict, Optional
+  import os
+  import base64
+  from cryptography.fernet import Fernet
+  from cryptography.hazmat.primitives import hashes
+  from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+  from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+  from cryptography.hazmat.backends import default_backend
+  import json
+  from pathlib import Path
+
+  class SecretManager:
+      """Secure secret management system."""
+      def __init__(
+          self,
+          key_file: Optional[Path] = None,
+          env_prefix: str = "APP_SECRET_"
+      ):
+          self.key_file = key_file or Path.home() / ".app_secrets"
+          self.env_prefix = env_prefix
+          self._key: Optional[bytes] = None
+          self._fernet: Optional[Fernet] = None
+          self._initialize()
+
+      def _initialize(self) -> None:
+          """Initialize secret manager."""
+          if self._key is None:
+              self._key = self._load_or_generate_key()
+          if self._fernet is None:
+              self._fernet = Fernet(self._key)
+
+      def _load_or_generate_key(self) -> bytes:
+          """Load existing key or generate new one."""
+          if self.key_file.exists():
+              return self._load_key()
+          return self._generate_key()
+
+      def _load_key(self) -> bytes:
+          """Load encryption key from file."""
+          with open(self.key_file, 'rb') as f:
+              return f.read()
+
+      def _generate_key(self) -> bytes:
+          """Generate new encryption key."""
+          key = Fernet.generate_key()
+          self.key_file.parent.mkdir(parents=True, exist_ok=True)
+          with open(self.key_file, 'wb') as f:
+              f.write(key)
+          return key
+
+      def encrypt(self, data: Any) -> str:
+          """Encrypt data."""
+          self._initialize()
+          if isinstance(data, (dict, list)):
+              data = json.dumps(data)
+          return self._fernet.encrypt(str(data).encode()).decode()
+
+      def decrypt(self, encrypted_data: str) -> Any:
+          """Decrypt data."""
+          self._initialize()
+          try:
+              decrypted = self._fernet.decrypt(encrypted_data.encode())
+              return json.loads(decrypted.decode())
+          except json.JSONDecodeError:
+              return decrypted.decode()
+
+      def get_secret(self, key: str) -> Optional[str]:
+          """Get secret from environment."""
+          return os.environ.get(f"{self.env_prefix}{key}")
+
+      def set_secret(
+          self,
+          key: str,
+          value: str,
+          encrypt: bool = True
+      ) -> None:
+          """Set secret in environment."""
+          if encrypt:
+              value = self.encrypt(value)
+          os.environ[f"{self.env_prefix}{key}"] = value
+
+  class CredentialManager:
+      """Credential management system."""
+      def __init__(
+          self,
+          secret_manager: SecretManager,
+          salt: Optional[bytes] = None
+      ):
+          self.secret_manager = secret_manager
+          self.salt = salt or os.urandom(16)
+          self._kdf = PBKDF2HMAC(
+              algorithm=hashes.SHA256(),
+              length=32,
+              salt=self.salt,
+              iterations=100000,
+              backend=default_backend()
+          )
+
+      def hash_password(self, password: str) -> str:
+          """Hash password using PBKDF2."""
+          key = self._kdf.derive(password.encode())
+          return base64.b64encode(key).decode()
+
+      def verify_password(
+          self,
+          password: str,
+          hashed_password: str
+      ) -> bool:
+          """Verify password against hash."""
+          try:
+              key = self._kdf.derive(password.encode())
+              return base64.b64encode(key).decode() == hashed_password
+          except Exception:
+              return False
+
+      def generate_token(
+          self,
+          user_id: str,
+          expires_in: int = 3600
+      ) -> str:
+          """Generate JWT token."""
+          payload = {
+              'user_id': user_id,
+              'exp': int(time.time()) + expires_in
+          }
+          return self.secret_manager.encrypt(payload)
+
+      def verify_token(self, token: str) -> Optional[str]:
+          """Verify JWT token."""
+          try:
+              payload = self.secret_manager.decrypt(token)
+              if payload['exp'] < int(time.time()):
+                  return None
+              return payload['user_id']
+          except Exception:
+              return None
+  ```
+
+### SQL Injection Prevention
+- Implement SQL injection prevention:
+  ```python
+  # Good: SQL injection prevention
+  from typing import Any, Dict, List, Optional, Union
+  import asyncpg
+  from contextlib import asynccontextmanager
+  import logging
+  from dataclasses import dataclass
+  from datetime import datetime
+
+  @dataclass
+  class DatabaseConfig:
+      """Database configuration."""
+      host: str
+      port: int
+      database: str
+      user: str
+      password: str
+      min_size: int = 10
+      max_size: int = 100
+      command_timeout: float = 60.0
+      ssl: bool = False
+
+  class DatabaseManager:
+      """Database manager with SQL injection prevention."""
+      def __init__(self, config: DatabaseConfig):
+          self.config = config
+          self._pool: Optional[asyncpg.Pool] = None
+          self._logger = logging.getLogger(__name__)
+
+      async def initialize(self) -> None:
+          """Initialize database connection pool."""
+          self._pool = await asyncpg.create_pool(
+              host=self.config.host,
+              port=self.config.port,
+              database=self.config.database,
+              user=self.config.user,
+              password=self.config.password,
+              min_size=self.config.min_size,
+              max_size=self.config.max_size,
+              command_timeout=self.config.command_timeout,
+              ssl=self.config.ssl
+          )
+
+      async def close(self) -> None:
+          """Close database connection pool."""
+          if self._pool:
+              await self._pool.close()
+              self._pool = None
+
+      @asynccontextmanager
+      async def transaction(self):
+          """Transaction context manager."""
+          if not self._pool:
+              await self.initialize()
+          async with self._pool.acquire() as conn:
+              async with conn.transaction():
+                  yield conn
+
+      async def execute(
+          self,
+          query: str,
+          *args: Any,
+          timeout: Optional[float] = None
+      ) -> str:
+          """Execute query with parameters."""
+          if not self._pool:
+              await self.initialize()
+          async with self._pool.acquire() as conn:
+              try:
+                  return await conn.execute(query, *args, timeout=timeout)
+              except Exception as e:
+                  self._logger.error(f"Database error: {e}")
+                  raise
+
+      async def fetch(
+          self,
+          query: str,
+          *args: Any,
+          timeout: Optional[float] = None
+      ) -> List[Dict[str, Any]]:
+          """Fetch results with parameters."""
+          if not self._pool:
+              await self.initialize()
+          async with self._pool.acquire() as conn:
+              try:
+                  return await conn.fetch(query, *args, timeout=timeout)
+              except Exception as e:
+                  self._logger.error(f"Database error: {e}")
+                  raise
+
+      async def fetchrow(
+          self,
+          query: str,
+          *args: Any,
+          timeout: Optional[float] = None
+      ) -> Optional[Dict[str, Any]]:
+          """Fetch single row with parameters."""
+          if not self._pool:
+              await self.initialize()
+          async with self._pool.acquire() as conn:
+              try:
+                  return await conn.fetchrow(query, *args, timeout=timeout)
+              except Exception as e:
+                  self._logger.error(f"Database error: {e}")
+                  raise
+
+  class UserRepository:
+      """User repository with SQL injection prevention."""
+      def __init__(self, db: DatabaseManager):
+          self.db = db
+
+      async def get_user(self, user_id: int) -> Optional[Dict[str, Any]]:
+          """Get user by ID."""
+          query = """
+              SELECT id, username, email, created_at
+              FROM users
+              WHERE id = $1
+          """
+          return await self.db.fetchrow(query, user_id)
+
+      async def create_user(
+          self,
+          username: str,
+          email: str,
+          password_hash: str
+      ) -> Dict[str, Any]:
+          """Create new user."""
+          query = """
+              INSERT INTO users (username, email, password_hash)
+              VALUES ($1, $2, $3)
+              RETURNING id, username, email, created_at
+          """
+          return await self.db.fetchrow(query, username, email, password_hash)
+
+      async def update_user(
+          self,
+          user_id: int,
+          **updates: Any
+      ) -> Optional[Dict[str, Any]]:
+          """Update user."""
+          if not updates:
+              return None
+
+          set_clause = ", ".join(f"{k} = ${i+2}" for i, k in enumerate(updates))
+          query = f"""
+              UPDATE users
+              SET {set_clause}
+              WHERE id = $1
+              RETURNING id, username, email, created_at
+          """
+          args = [user_id] + list(updates.values())
+          return await self.db.fetchrow(query, *args)
+  ```
+
+### XSS Prevention
+- Implement XSS prevention:
+  ```python
+  # Good: XSS prevention
+  from typing import Any, Dict, Optional, Union
+  import html
+  import json
+  from urllib.parse import quote, urlparse
+  from dataclasses import dataclass
+  import bleach
+  from markdown import markdown
+  from bs4 import BeautifulSoup
+
+  @dataclass
+  class SanitizationConfig:
+      """Sanitization configuration."""
+      allowed_tags: List[str] = None
+      allowed_attributes: Dict[str, List[str]] = None
+      allowed_protocols: List[str] = None
+      strip_tags: bool = True
+      strip_comments: bool = True
+
+  class OutputSanitizer:
+      """Output sanitization for XSS prevention."""
+      def __init__(
+          self,
+          config: Optional[SanitizationConfig] = None
+      ):
+          self.config = config or SanitizationConfig(
+              allowed_tags=[
+                  'p', 'br', 'strong', 'em', 'code', 'pre',
+                  'ul', 'ol', 'li', 'a', 'img', 'blockquote'
+              ],
+              allowed_attributes={
+                  'a': ['href', 'title'],
+                  'img': ['src', 'alt', 'title']
+              },
+              allowed_protocols=['http', 'https', 'mailto']
+          )
+
+      def sanitize_html(self, html_content: str) -> str:
+          """Sanitize HTML content."""
+          return bleach.clean(
+              html_content,
+              tags=self.config.allowed_tags,
+              attributes=self.config.allowed_attributes,
+              protocols=self.config.allowed_protocols,
+              strip=self.config.strip_tags,
+              strip_comments=self.config.strip_comments
+          )
+
+      def sanitize_text(self, text: str) -> str:
+          """Sanitize plain text."""
+          return html.escape(text)
+
+      def sanitize_url(self, url: str) -> str:
+          """Sanitize URL."""
+          parsed = urlparse(url)
+          if parsed.scheme not in self.config.allowed_protocols:
+              raise ValueError(f"Invalid URL protocol: {parsed.scheme}")
+          return quote(url, safe=':/?=&')
+
+      def sanitize_json(self, data: Any) -> str:
+          """Sanitize JSON data."""
+          if isinstance(data, str):
+              return self.sanitize_text(data)
+          elif isinstance(data, dict):
+              return json.dumps({
+                  k: self.sanitize_json(v)
+                  for k, v in data.items()
+              })
+          elif isinstance(data, list):
+              return json.dumps([
+                  self.sanitize_json(item)
+                  for item in data
+              ])
+          return json.dumps(data)
+
+      def sanitize_markdown(
+          self,
+          markdown_content: str
+      ) -> str:
+          """Sanitize markdown content."""
+          # Convert markdown to HTML
+          html_content = markdown(markdown_content)
+          # Sanitize HTML
+          return self.sanitize_html(html_content)
+
+      def sanitize_rich_text(
+          self,
+          content: str,
+          format: str = 'html'
+      ) -> str:
+          """Sanitize rich text content."""
+          if format == 'html':
+              return self.sanitize_html(content)
+          elif format == 'markdown':
+              return self.sanitize_markdown(content)
+          else:
+              return self.sanitize_text(content)
+
+  class ResponseFormatter:
+      """Response formatting with XSS prevention."""
+      def __init__(self, sanitizer: OutputSanitizer):
+          self.sanitizer = sanitizer
+
+      def format_html_response(
+          self,
+          template: str,
+          context: Dict[str, Any]
+      ) -> str:
+          """Format HTML response."""
+          # Sanitize context values
+          sanitized_context = {
+              k: self.sanitizer.sanitize_html(str(v))
+              for k, v in context.items()
+          }
+          # Format template with sanitized context
+          return template.format(**sanitized_context)
+
+      def format_json_response(
+          self,
+          data: Dict[str, Any]
+      ) -> str:
+          """Format JSON response."""
+          return self.sanitizer.sanitize_json(data)
+
+      def format_text_response(
+          self,
+          content: str
+      ) -> str:
+          """Format text response."""
+          return self.sanitizer.sanitize_text(content)
+  ```
+
+## Security Implementation Flow
+
+```mermaid
+---
+title: Python Security Implementation Flow
+---
+graph TD
+    A[Input] --> B{Input Type}
+    B -->|User Input| C[Input Validation]
+    B -->|File| D[File Validation]
+    B -->|Network| E[Network Validation]
+    
+    C --> F[Sanitization]
+    D --> F
+    E --> F
+    
+    F --> G{Data Type}
+    G -->|HTML| H[HTML Sanitization]
+    G -->|JSON| I[JSON Sanitization]
+    G -->|Text| J[Text Sanitization]
+    
+    H --> K[Output]
+    I --> K
+    J --> K
+    
+    subgraph "Security Layers"
+        L[Input Validation]
+        M[Authentication]
+        N[Authorization]
+        O[Data Protection]
+        P[Output Sanitization]
+    end
+    
+    L --> C
+    M --> F
+    N --> F
+    O --> F
+    P --> K
+```
+
+## Examples
+
+<example>
+# Good: Complete security implementation
+```python
+"""Secure application implementation."""
+
+import asyncio
+import logging
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+from dataclasses import dataclass
+
+from pydantic import BaseModel, EmailStr, Field
+from cryptography.fernet import Fernet
+from asyncpg import Pool
+import bleach
+from markdown import markdown
+
+# Input validation
+class UserInput(BaseModel):
+    """User input validation."""
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    roles: List[str] = Field(default_factory=list)
+
+# Secret management
+class SecretManager:
+    """Secret management system."""
+    def __init__(self, key_file: Path):
+        self.key_file = key_file
+        self._key = self._load_or_generate_key()
+        self._fernet = Fernet(self._key)
+
+    def _load_or_generate_key(self) -> bytes:
+        """Load or generate encryption key."""
+        if self.key_file.exists():
+            return self.key_file.read_bytes()
+        key = Fernet.generate_key()
+        self.key_file.write_bytes(key)
+        return key
+
+    def encrypt(self, data: str) -> str:
+        """Encrypt data."""
+        return self._fernet.encrypt(data.encode()).decode()
+
+    def decrypt(self, encrypted: str) -> str:
+        """Decrypt data."""
+        return self._fernet.decrypt(encrypted.encode()).decode()
+
+# Database management
+class DatabaseManager:
+    """Database manager with SQL injection prevention."""
+    def __init__(self, pool: Pool):
+        self.pool = pool
+        self.logger = logging.getLogger(__name__)
+
+    async def execute(
+        self,
+        query: str,
+        *args: Any
+    ) -> Any:
+        """Execute query with parameters."""
+        async with self.pool.acquire() as conn:
+            try:
+                return await conn.execute(query, *args)
+            except Exception as e:
+                self.logger.error(f"Database error: {e}")
+                raise
+
+    async def fetch(
+        self,
+        query: str,
+        *args: Any
+    ) -> List[Dict[str, Any]]:
+        """Fetch results with parameters."""
+        async with self.pool.acquire() as conn:
+            try:
+                return await conn.fetch(query, *args)
+            except Exception as e:
+                self.logger.error(f"Database error: {e}")
+                raise
+
+# Output sanitization
+class OutputSanitizer:
+    """Output sanitization for XSS prevention."""
+    def __init__(self):
+        self.allowed_tags = [
+            'p', 'br', 'strong', 'em', 'code', 'pre',
+            'ul', 'ol', 'li', 'a', 'img', 'blockquote'
+        ]
+        self.allowed_attributes = {
+            'a': ['href', 'title'],
+            'img': ['src', 'alt', 'title']
+        }
+
+    def sanitize_html(self, html_content: str) -> str:
+        """Sanitize HTML content."""
+        return bleach.clean(
+            html_content,
+            tags=self.allowed_tags,
+            attributes=self.allowed_attributes,
+            strip=True
+        )
+
+    def sanitize_text(self, text: str) -> str:
+        """Sanitize plain text."""
+        return bleach.clean(text, strip=True)
+
+# Application implementation
+class SecureApplication:
+    """Secure application implementation."""
+    def __init__(
+        self,
+        db: DatabaseManager,
+        secret_manager: SecretManager,
+        sanitizer: OutputSanitizer
+    ):
+        self.db = db
+        self.secret_manager = secret_manager
+        self.sanitizer = sanitizer
+        self.logger = logging.getLogger(__name__)
+
+    async def create_user(
+        self,
+        username: str,
+        email: str,
+        password: str
+    ) -> Dict[str, Any]:
+        """Create new user with security measures."""
+        try:
+            # Validate input
+            user_input = UserInput(
+                username=username,
+                email=email,
+                password=password
+            )
+
+            # Hash password
+            password_hash = self.secret_manager.encrypt(password)
+
+            # Store user
+            query = """
+                INSERT INTO users (username, email, password_hash)
+                VALUES ($1, $2, $3)
+                RETURNING id, username, email, created_at
+            """
+            user = await self.db.fetchrow(
+                query,
+                user_input.username,
+                user_input.email,
+                password_hash
+            )
+
+            # Sanitize output
+            return {
+                'id': user['id'],
+                'username': self.sanitizer.sanitize_text(user['username']),
+                'email': self.sanitizer.sanitize_text(user['email']),
+                'created_at': user['created_at'].isoformat()
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error creating user: {e}")
+            raise
+
+    async def get_user_profile(
+        self,
+        user_id: int
+    ) -> Optional[Dict[str, Any]]:
+        """Get user profile with security measures."""
+        try:
+            # Fetch user
+            query = """
+                SELECT id, username, email, created_at
+                FROM users
+                WHERE id = $1
+            """
+            user = await self.db.fetchrow(query, user_id)
+            if not user:
+                return None
+
+            # Sanitize output
+            return {
+                'id': user['id'],
+                'username': self.sanitizer.sanitize_text(user['username']),
+                'email': self.sanitizer.sanitize_text(user['email']),
+                'created_at': user['created_at'].isoformat()
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error fetching user: {e}")
+            raise
+
+# Usage example
+async def main():
+    """Example usage."""
+    # Initialize components
+    secret_manager = SecretManager(Path.home() / ".app_secrets")
+    sanitizer = OutputSanitizer()
+    
+    # Initialize database
+    pool = await asyncpg.create_pool(
+        user="user",
+        password="password",
+        database="app",
+        host="localhost"
+    )
+    db = DatabaseManager(pool)
+    
+    # Create application
+    app = SecureApplication(db, secret_manager, sanitizer)
+    
+    try:
+        # Create user
+        user = await app.create_user(
+            username="john_doe",
+            email="john@example.com",
+            password="secure_password"
+        )
+        print(f"Created user: {user}")
+        
+        # Get user profile
+        profile = await app.get_user_profile(user['id'])
+        print(f"User profile: {profile}")
+        
+    finally:
+        await pool.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+</example>
+
+<example type="invalid">
+# Bad: Poor security implementation
+```python
+def create_user(username, email, password):
+    # Missing input validation
+    # Missing password hashing
+    # Missing SQL injection prevention
+    # Missing XSS prevention
+    # Missing error handling
+    query = f"INSERT INTO users VALUES ('{username}', '{email}', '{password}')"
+    execute_query(query)
+
+def get_user_profile(user_id):
+    # Missing input validation
+    # Missing SQL injection prevention
+    # Missing XSS prevention
+    # Missing error handling
+    query = f"SELECT * FROM users WHERE id = {user_id}"
+    return execute_query(query)
+```
+</example>
+
+## Best Practices
+1. Validate all input
+2. Use parameterized queries
+3. Hash passwords securely
+4. Implement proper authentication
+5. Use secure session management
+6. Sanitize all output
+7. Implement proper logging
+8. Use secure headers
+9. Implement rate limiting
+10. Use HTTPS
+11. Implement proper error handling
+12. Use secure dependencies
+13. Regular security audits
+14. Implement proper access control
+15. Follow security standards
+
+## Technical Metadata
+- Category: Python Development
+- Priority: High
+- Dependencies:
+  - cryptography
+  - pydantic
+  - asyncpg
+  - bleach
+  - markdown
+- Validation Requirements:
+  - Security scanning
+  - Vulnerability testing
+  - Code review
+  - Compliance checks
+
+<version>1.1.0</version> 

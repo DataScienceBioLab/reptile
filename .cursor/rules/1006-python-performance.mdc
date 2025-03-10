@@ -1,0 +1,1026 @@
+---
+description: ENFORCE Python performance optimization standards for efficient and scalable applications
+globs: ["**/*.py", "**/*.pyi", "setup.cfg", "pyproject.toml"]
+crossRefs:
+  - 001-rule-generator.mdc
+  - 002-rule-organization.mdc
+  - 1000-python-code-style.mdc
+  - 1005-python-error-handling.mdc
+  - 1010-python-types.mdc
+alwaysApply: true
+---
+
+# Python Performance Standards
+
+## Context
+- When optimizing code performance
+- When profiling performance bottlenecks
+- When handling large datasets
+- When implementing concurrent operations
+- When managing memory usage
+- When optimizing I/O operations
+- When implementing caching strategies
+- When managing database connections
+- When optimizing network requests
+- When implementing batch processing
+
+## Requirements
+
+### Performance Profiling
+- Implement comprehensive profiling:
+  ```python
+  # Good: Performance profiling with metrics
+  import cProfile
+  import pstats
+  import io
+  import time
+  from functools import wraps
+  from typing import Any, Callable, Dict, Optional, TypeVar
+  from dataclasses import dataclass
+  from datetime import datetime
+
+  T = TypeVar('T')
+
+  @dataclass
+  class PerformanceMetrics:
+      """Performance metrics for profiling."""
+      function_name: str
+      total_time: float
+      calls: int
+      avg_time: float
+      max_time: float
+      min_time: float
+      timestamp: datetime
+      memory_usage: Optional[float] = None
+
+  class PerformanceProfiler:
+      """Comprehensive performance profiler."""
+      def __init__(self):
+          self._metrics: Dict[str, List[PerformanceMetrics]] = {}
+          self._profiler = cProfile.Profile()
+
+      def profile_function(
+          self,
+          func: Callable[..., T],
+          memory_tracking: bool = False
+      ) -> Callable[..., T]:
+          """Profile function with metrics collection."""
+          @wraps(func)
+          def wrapper(*args: Any, **kwargs: Any) -> T:
+              start_time = time.time()
+              start_memory = None
+              if memory_tracking:
+                  start_memory = self._get_memory_usage()
+
+              try:
+                  self._profiler.enable()
+                  result = func(*args, **kwargs)
+                  self._profiler.disable()
+                  return result
+              finally:
+                end_time = time.time()
+                end_memory = None
+                if memory_tracking:
+                    end_memory = self._get_memory_usage()
+
+                metrics = PerformanceMetrics(
+                    function_name=func.__name__,
+                    total_time=end_time - start_time,
+                    calls=self._profiler.getstats()[0].ncalls,
+                    avg_time=self._profiler.getstats()[0].ttotal / self._profiler.getstats()[0].ncalls,
+                    max_time=max(stat.ttotal for stat in self._profiler.getstats()),
+                    min_time=min(stat.ttotal for stat in self._profiler.getstats()),
+                    timestamp=datetime.utcnow(),
+                    memory_usage=end_memory - start_memory if memory_tracking else None
+                )
+
+                if func.__name__ not in self._metrics:
+                    self._metrics[func.__name__] = []
+                self._metrics[func.__name__].append(metrics)
+
+          return wrapper
+
+      def get_profile_stats(self) -> str:
+          """Get formatted profile statistics."""
+          stream = io.StringIO()
+          stats = pstats.Stats(self._profiler, stream=stream)
+          stats.sort_stats('cumulative')
+          stats.print_stats()
+          return stream.getvalue()
+
+      def get_metrics_summary(self) -> Dict[str, Any]:
+          """Get summary of collected metrics."""
+          summary = {}
+          for func_name, metrics_list in self._metrics.items():
+              if metrics_list:
+                  latest = metrics_list[-1]
+                  summary[func_name] = {
+                      "total_time": latest.total_time,
+                      "calls": latest.calls,
+                      "avg_time": latest.avg_time,
+                      "max_time": latest.max_time,
+                      "min_time": latest.min_time,
+                      "memory_usage": latest.memory_usage,
+                      "last_run": latest.timestamp.isoformat()
+                  }
+          return summary
+
+      def _get_memory_usage(self) -> float:
+          """Get current memory usage."""
+          import psutil
+          process = psutil.Process()
+          return process.memory_info().rss / 1024 / 1024  # MB
+  ```
+
+### Memory Management
+- Implement efficient memory usage:
+  ```python
+  # Good: Memory-efficient data processing
+  from typing import Any, Callable, Dict, Generator, Iterator, List, Optional, TypeVar
+  from dataclasses import dataclass
+  import gc
+  import weakref
+  import array
+  import numpy as np
+  from collections import deque
+
+  T = TypeVar('T')
+
+  @dataclass
+  class MemoryConfig:
+      """Memory management configuration."""
+      chunk_size: int = 1000
+      max_memory: float = 1024.0  # MB
+      gc_threshold: int = 1000
+      use_weak_refs: bool = True
+
+  class MemoryManager:
+      """Memory-efficient resource manager."""
+      def __init__(self, config: Optional[MemoryConfig] = None):
+          self.config = config or MemoryConfig()
+          self._weak_refs: Dict[str, weakref.ref] = {}
+          self._memory_usage: float = 0.0
+          self._gc_counter: int = 0
+
+      def __enter__(self) -> 'MemoryManager':
+          """Enter memory manager context."""
+          return self
+
+      def __exit__(
+          self,
+          exc_type: Optional[Type[Exception]],
+          exc_val: Optional[Exception],
+          exc_tb: Optional[TracebackType]
+      ) -> None:
+          """Exit memory manager context."""
+          self.cleanup()
+
+      def register(self, key: str, obj: Any) -> None:
+          """Register object with memory tracking."""
+          if self.config.use_weak_refs:
+              self._weak_refs[key] = weakref.ref(obj)
+          self._update_memory_usage()
+
+      def cleanup(self) -> None:
+          """Clean up resources."""
+          self._weak_refs.clear()
+          self._force_gc()
+
+      def _update_memory_usage(self) -> None:
+          """Update memory usage tracking."""
+          import psutil
+          process = psutil.Process()
+          self._memory_usage = process.memory_info().rss / 1024 / 1024  # MB
+
+          if self._memory_usage > self.config.max_memory:
+              self._force_gc()
+
+      def _force_gc(self) -> None:
+          """Force garbage collection."""
+          gc.collect()
+          self._gc_counter += 1
+          self._update_memory_usage()
+
+  class ChunkedProcessor:
+      """Process data in memory-efficient chunks."""
+      def __init__(
+          self,
+          chunk_size: int = 1000,
+          max_memory: float = 1024.0
+      ):
+          self.chunk_size = chunk_size
+          self.max_memory = max_memory
+          self._memory_manager = MemoryManager(
+              MemoryConfig(
+                  chunk_size=chunk_size,
+                  max_memory=max_memory
+              )
+          )
+
+      def process_stream(
+          self,
+          stream: Iterator[T],
+          processor: Callable[[List[T]], Any]
+      ) -> Generator[Any, None, None]:
+          """Process stream in chunks."""
+          chunk: List[T] = []
+          with self._memory_manager:
+              for item in stream:
+                  chunk.append(item)
+                  if len(chunk) >= self.chunk_size:
+                      yield processor(chunk)
+                      chunk = []
+                      self._memory_manager._force_gc()
+
+              if chunk:
+                  yield processor(chunk)
+
+      def process_array(
+          self,
+          data: array.array,
+          processor: Callable[[array.array], Any]
+      ) -> Generator[Any, None, None]:
+          """Process array in chunks."""
+          for i in range(0, len(data), self.chunk_size):
+              chunk = data[i:i + self.chunk_size]
+              yield processor(chunk)
+              self._memory_manager._force_gc()
+
+      def process_numpy(
+          self,
+          data: np.ndarray,
+          processor: Callable[[np.ndarray], Any]
+      ) -> Generator[Any, None, None]:
+          """Process numpy array in chunks."""
+          for i in range(0, len(data), self.chunk_size):
+              chunk = data[i:i + self.chunk_size]
+              yield processor(chunk)
+              self._memory_manager._force_gc()
+  ```
+
+### Caching Implementation
+- Implement efficient caching strategies:
+  ```python
+  # Good: Advanced caching implementation
+  from typing import Any, Callable, Dict, Optional, TypeVar, Union
+  from functools import wraps
+  import time
+  import hashlib
+  import pickle
+  from datetime import datetime, timedelta
+  from dataclasses import dataclass
+  import threading
+  import weakref
+
+  T = TypeVar('T')
+
+  @dataclass
+  class CacheEntry:
+      """Cache entry with metadata."""
+      value: Any
+      timestamp: datetime
+      size: int
+      hits: int = 0
+      last_accessed: datetime = datetime.utcnow()
+
+  class CacheConfig:
+      """Cache configuration."""
+      def __init__(
+          self,
+          max_size: int = 1000,
+          max_memory: float = 1024.0,  # MB
+          ttl: Optional[timedelta] = None,
+          cleanup_interval: timedelta = timedelta(minutes=5)
+      ):
+          self.max_size = max_size
+          self.max_memory = max_memory
+          self.ttl = ttl
+          self.cleanup_interval = cleanup_interval
+
+  class Cache:
+      """Thread-safe cache implementation."""
+      def __init__(self, config: Optional[CacheConfig] = None):
+          self.config = config or CacheConfig()
+          self._cache: Dict[str, CacheEntry] = {}
+          self._lock = threading.Lock()
+          self._last_cleanup = datetime.utcnow()
+          self._total_memory = 0
+
+      def get(self, key: str) -> Optional[Any]:
+          """Get value from cache."""
+          with self._lock:
+              entry = self._cache.get(key)
+              if entry is None:
+                  return None
+
+              if self.config.ttl and datetime.utcnow() - entry.timestamp > self.config.ttl:
+                  del self._cache[key]
+                  self._total_memory -= entry.size
+                  return None
+
+              entry.hits += 1
+              entry.last_accessed = datetime.utcnow()
+              return entry.value
+
+      def set(
+          self,
+          key: str,
+          value: Any,
+          ttl: Optional[timedelta] = None
+      ) -> None:
+          """Set value in cache."""
+          with self._lock:
+              self._cleanup_if_needed()
+
+              size = self._get_object_size(value)
+              if self._total_memory + size > self.config.max_memory * 1024 * 1024:
+                  self._evict_oldest()
+
+              entry = CacheEntry(
+                  value=value,
+                  timestamp=datetime.utcnow(),
+                  size=size
+              )
+              self._cache[key] = entry
+              self._total_memory += size
+
+      def delete(self, key: str) -> None:
+          """Delete value from cache."""
+          with self._lock:
+              if key in self._cache:
+                  self._total_memory -= self._cache[key].size
+                  del self._cache[key]
+
+      def clear(self) -> None:
+          """Clear cache."""
+          with self._lock:
+              self._cache.clear()
+              self._total_memory = 0
+
+      def _cleanup_if_needed(self) -> None:
+          """Clean up expired entries."""
+          now = datetime.utcnow()
+          if now - self._last_cleanup < self.config.cleanup_interval:
+              return
+
+          expired = [
+              key for key, entry in self._cache.items()
+              if self.config.ttl and now - entry.timestamp > self.config.ttl
+          ]
+          for key in expired:
+              self.delete(key)
+
+          self._last_cleanup = now
+
+      def _evict_oldest(self) -> None:
+          """Evict oldest entries."""
+          while (
+              self._total_memory > self.config.max_memory * 1024 * 1024
+              and self._cache
+          ):
+              oldest = min(
+                  self._cache.items(),
+                  key=lambda x: x[1].last_accessed
+              )
+              self.delete(oldest[0])
+
+      def _get_object_size(self, obj: Any) -> int:
+          """Get size of object in bytes."""
+          return len(pickle.dumps(obj))
+
+  def cached(
+      cache: Cache,
+      ttl: Optional[timedelta] = None,
+      key_prefix: str = ""
+  ) -> Callable:
+      """Decorator for caching function results."""
+      def decorator(func: Callable[..., T]) -> Callable[..., T]:
+          @wraps(func)
+          def wrapper(*args: Any, **kwargs: Any) -> T:
+              # Generate cache key
+              key_parts = [key_prefix, func.__name__]
+              key_parts.extend(str(arg) for arg in args)
+              key_parts.extend(f"{k}:{v}" for k, v in sorted(kwargs.items()))
+              key = hashlib.md5("|".join(key_parts).encode()).hexdigest()
+
+              # Try to get from cache
+              result = cache.get(key)
+              if result is not None:
+                  return result
+
+              # Compute and cache result
+              result = func(*args, **kwargs)
+              cache.set(key, result, ttl)
+              return result
+
+          return wrapper
+      return decorator
+  ```
+
+### Parallel Processing
+- Implement efficient parallel processing:
+  ```python
+  # Good: Parallel processing implementation
+  from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+  import asyncio
+  import concurrent.futures
+  from dataclasses import dataclass
+  import multiprocessing
+  from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+  import queue
+  import threading
+  import time
+
+  T = TypeVar('T')
+  R = TypeVar('R')
+
+  @dataclass
+  class ProcessingConfig:
+      """Parallel processing configuration."""
+      max_workers: Optional[int] = None
+      chunk_size: int = 1000
+      timeout: Optional[float] = None
+      use_processes: bool = False
+      max_queue_size: int = 1000
+
+  class ParallelProcessor:
+      """Parallel processing manager."""
+      def __init__(
+          self,
+          config: Optional[ProcessingConfig] = None
+      ):
+          self.config = config or ProcessingConfig()
+          if self.config.max_workers is None:
+              self.config.max_workers = (
+                  multiprocessing.cpu_count()
+                  if self.config.use_processes
+                  else multiprocessing.cpu_count() * 2
+              )
+
+          self._executor = (
+              ProcessPoolExecutor(max_workers=self.config.max_workers)
+              if self.config.use_processes
+              else ThreadPoolExecutor(max_workers=self.config.max_workers)
+          )
+          self._task_queue = queue.Queue(maxsize=self.config.max_queue_size)
+          self._result_queue = queue.Queue()
+          self._workers: List[threading.Thread] = []
+          self._stop_event = threading.Event()
+
+      def start(self) -> None:
+          """Start parallel processing."""
+          for _ in range(self.config.max_workers):
+              worker = threading.Thread(
+                  target=self._worker_loop,
+                  daemon=True
+              )
+              worker.start()
+              self._workers.append(worker)
+
+      def stop(self) -> None:
+          """Stop parallel processing."""
+          self._stop_event.set()
+          for worker in self._workers:
+              worker.join()
+          self._executor.shutdown()
+
+      def process_items(
+          self,
+          items: List[T],
+          processor: Callable[[T], R],
+          timeout: Optional[float] = None
+      ) -> List[R]:
+          """Process items in parallel."""
+          results: List[R] = []
+          futures: List[concurrent.futures.Future] = []
+
+          # Submit tasks
+          for item in items:
+              future = self._executor.submit(processor, item)
+              futures.append(future)
+
+          # Collect results
+          for future in concurrent.futures.as_completed(
+              futures,
+              timeout=timeout or self.config.timeout
+          ):
+              try:
+                  result = future.result()
+                  results.append(result)
+              except Exception as e:
+                  print(f"Error processing item: {e}")
+
+          return results
+
+      def process_stream(
+          self,
+          stream: Iterator[T],
+          processor: Callable[[T], R],
+          timeout: Optional[float] = None
+      ) -> Generator[R, None, None]:
+          """Process stream in parallel."""
+          chunk: List[T] = []
+          for item in stream:
+              chunk.append(item)
+              if len(chunk) >= self.config.chunk_size:
+                  yield from self.process_items(chunk, processor, timeout)
+                  chunk = []
+
+          if chunk:
+              yield from self.process_items(chunk, processor, timeout)
+
+      def _worker_loop(self) -> None:
+          """Worker thread loop."""
+          while not self._stop_event.is_set():
+              try:
+                  task = self._task_queue.get(timeout=1)
+                  if task is None:
+                      break
+
+                  func, args, kwargs = task
+                  try:
+                      result = func(*args, **kwargs)
+                      self._result_queue.put((True, result))
+                  except Exception as e:
+                      self._result_queue.put((False, e))
+                  finally:
+                      self._task_queue.task_done()
+
+              except queue.Empty:
+                  continue
+
+  class AsyncProcessor:
+      """Asynchronous processing manager."""
+      def __init__(
+          self,
+          max_concurrent: Optional[int] = None,
+          timeout: Optional[float] = None
+      ):
+          self.max_concurrent = max_concurrent or multiprocessing.cpu_count() * 2
+          self.timeout = timeout
+          self._semaphore = asyncio.Semaphore(self.max_concurrent)
+
+      async def process_items(
+          self,
+          items: List[T],
+          processor: Callable[[T], Awaitable[R]]
+      ) -> List[R]:
+          """Process items concurrently."""
+          async def process_with_semaphore(item: T) -> R:
+              async with self._semaphore:
+                return await processor(item)
+
+          tasks = [
+              process_with_semaphore(item)
+              for item in items
+          ]
+          return await asyncio.gather(*tasks)
+
+      async def process_stream(
+          self,
+          stream: AsyncIterator[T],
+          processor: Callable[[T], Awaitable[R]]
+      ) -> AsyncGenerator[R, None]:
+          """Process stream concurrently."""
+          async def process_with_semaphore(item: T) -> R:
+              async with self._semaphore:
+                return await processor(item)
+
+          async for item in stream:
+              yield await process_with_semaphore(item)
+  ```
+
+## Performance Optimization Flow
+
+```mermaid
+---
+title: Python Performance Optimization Flow
+---
+graph TD
+    A[Code] --> B{Performance Issue?}
+    B -->|Yes| C[Profile Code]
+    B -->|No| D[Monitor]
+    
+    C --> E{Identify Bottleneck}
+    E -->|CPU| F[CPU Optimization]
+    E -->|Memory| G[Memory Optimization]
+    E -->|I/O| H[I/O Optimization]
+    E -->|Network| I[Network Optimization]
+    
+    F --> J[Implement Solution]
+    G --> J
+    H --> J
+    I --> J
+    
+    J --> K[Measure Impact]
+    K --> L{Improvement?}
+    
+    L -->|Yes| M[Deploy]
+    L -->|No| N[Refine Solution]
+    
+    N --> J
+    
+    M --> D
+    
+    subgraph "Optimization Techniques"
+        O[Profiling]
+        P[Memory Management]
+        Q[Caching]
+        R[Parallel Processing]
+        S[I/O Optimization]
+    end
+    
+    O --> C
+    P --> G
+    Q --> J
+    R --> F
+    S --> H
+```
+
+## Examples
+
+<example>
+# Good: Complete performance optimization implementation
+```python
+"""High-performance data processing module."""
+
+import asyncio
+import concurrent.futures
+import cProfile
+import gc
+import hashlib
+import io
+import logging
+import multiprocessing
+import pstats
+import queue
+import threading
+import time
+from datetime import datetime, timedelta
+from functools import wraps
+from typing import Any, AsyncGenerator, AsyncIterator, Callable, Dict, Generator, Iterator, List, Optional, TypeVar, Union, Awaitable
+from dataclasses import dataclass
+
+T = TypeVar('T')
+R = TypeVar('R')
+
+# Performance monitoring
+@dataclass
+class PerformanceMetrics:
+    """Performance metrics."""
+    function_name: str
+    total_time: float
+    calls: int
+    avg_time: float
+    max_time: float
+    min_time: float
+    timestamp: datetime
+    memory_usage: Optional[float] = None
+
+class PerformanceMonitor:
+    """Performance monitoring system."""
+    def __init__(self):
+        self._metrics: Dict[str, List[PerformanceMetrics]] = {}
+        self._profiler = cProfile.Profile()
+        self._lock = threading.Lock()
+
+    def profile_function(
+        self,
+        func: Callable[..., T],
+        memory_tracking: bool = False
+    ) -> Callable[..., T]:
+        """Profile function with metrics collection."""
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> T:
+            start_time = time.time()
+            start_memory = None
+            if memory_tracking:
+                start_memory = self._get_memory_usage()
+
+            try:
+                self._profiler.enable()
+                result = func(*args, **kwargs)
+                self._profiler.disable()
+                return result
+            finally:
+                end_time = time.time()
+                end_memory = None
+                if memory_tracking:
+                    end_memory = self._get_memory_usage()
+
+                metrics = PerformanceMetrics(
+                    function_name=func.__name__,
+                    total_time=end_time - start_time,
+                    calls=self._profiler.getstats()[0].ncalls,
+                    avg_time=self._profiler.getstats()[0].ttotal / self._profiler.getstats()[0].ncalls,
+                    max_time=max(stat.ttotal for stat in self._profiler.getstats()),
+                    min_time=min(stat.ttotal for stat in self._profiler.getstats()),
+                    timestamp=datetime.utcnow(),
+                    memory_usage=end_memory - start_memory if memory_tracking else None
+                )
+
+                with self._lock:
+                    if func.__name__ not in self._metrics:
+                        self._metrics[func.__name__] = []
+                    self._metrics[func.__name__].append(metrics)
+
+        return wrapper
+
+    def get_profile_stats(self) -> str:
+        """Get formatted profile statistics."""
+        stream = io.StringIO()
+        stats = pstats.Stats(self._profiler, stream=stream)
+        stats.sort_stats('cumulative')
+        stats.print_stats()
+        return stream.getvalue()
+
+    def get_metrics_summary(self) -> Dict[str, Any]:
+        """Get summary of collected metrics."""
+        summary = {}
+        with self._lock:
+            for func_name, metrics_list in self._metrics.items():
+                if metrics_list:
+                    latest = metrics_list[-1]
+                    summary[func_name] = {
+                        "total_time": latest.total_time,
+                        "calls": latest.calls,
+                        "avg_time": latest.avg_time,
+                        "max_time": latest.max_time,
+                        "min_time": latest.min_time,
+                        "memory_usage": latest.memory_usage,
+                        "last_run": latest.timestamp.isoformat()
+                    }
+        return summary
+
+    def _get_memory_usage(self) -> float:
+        """Get current memory usage."""
+        import psutil
+        process = psutil.Process()
+        return process.memory_info().rss / 1024 / 1024  # MB
+
+# Memory management
+class MemoryManager:
+    """Memory-efficient resource manager."""
+    def __init__(self, max_memory: float = 1024.0):  # MB
+        self.max_memory = max_memory
+        self._memory_usage: float = 0.0
+        self._gc_counter: int = 0
+        self._lock = threading.Lock()
+
+    def __enter__(self) -> 'MemoryManager':
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[Exception]],
+        exc_val: Optional[Exception],
+        exc_tb: Optional[TracebackType]
+    ) -> None:
+        self.cleanup()
+
+    def cleanup(self) -> None:
+        """Clean up resources."""
+        self._force_gc()
+
+    def _update_memory_usage(self) -> None:
+        """Update memory usage tracking."""
+        import psutil
+        process = psutil.Process()
+        with self._lock:
+            self._memory_usage = process.memory_info().rss / 1024 / 1024  # MB
+
+            if self._memory_usage > self.max_memory:
+                self._force_gc()
+
+    def _force_gc(self) -> None:
+        """Force garbage collection."""
+        gc.collect()
+        with self._lock:
+            self._gc_counter += 1
+        self._update_memory_usage()
+
+# Caching
+class Cache:
+    """Thread-safe cache implementation."""
+    def __init__(
+        self,
+        max_size: int = 1000,
+        max_memory: float = 1024.0,  # MB
+        ttl: Optional[timedelta] = None
+    ):
+        self.max_size = max_size
+        self.max_memory = max_memory
+        self.ttl = ttl
+        self._cache: Dict[str, CacheEntry] = {}
+        self._lock = threading.Lock()
+        self._total_memory = 0
+
+    def get(self, key: str) -> Optional[Any]:
+        """Get value from cache."""
+        with self._lock:
+            entry = self._cache.get(key)
+            if entry is None:
+                return None
+
+            if self.ttl and datetime.utcnow() - entry.timestamp > self.ttl:
+                del self._cache[key]
+                self._total_memory -= entry.size
+                return None
+
+            entry.hits += 1
+            entry.last_accessed = datetime.utcnow()
+            return entry.value
+
+    def set(
+        self,
+        key: str,
+        value: Any,
+        ttl: Optional[timedelta] = None
+    ) -> None:
+        """Set value in cache."""
+        with self._lock:
+            size = self._get_object_size(value)
+            if self._total_memory + size > self.max_memory * 1024 * 1024:
+                self._evict_oldest()
+
+            entry = CacheEntry(
+                value=value,
+                timestamp=datetime.utcnow(),
+                size=size
+            )
+            self._cache[key] = entry
+            self._total_memory += size
+
+    def _evict_oldest(self) -> None:
+        """Evict oldest entries."""
+        while (
+            self._total_memory > self.max_memory * 1024 * 1024
+            and self._cache
+        ):
+            oldest = min(
+                self._cache.items(),
+                key=lambda x: x[1].last_accessed
+            )
+            self.delete(oldest[0])
+
+    def _get_object_size(self, obj: Any) -> int:
+        """Get size of object in bytes."""
+        return len(pickle.dumps(obj))
+
+# Parallel processing
+class ParallelProcessor:
+    """Parallel processing manager."""
+    def __init__(
+        self,
+        max_workers: Optional[int] = None,
+        use_processes: bool = False
+    ):
+        self.max_workers = max_workers or (
+            multiprocessing.cpu_count()
+            if use_processes
+            else multiprocessing.cpu_count() * 2
+        )
+        self.use_processes = use_processes
+        self._executor = (
+            ProcessPoolExecutor(max_workers=self.max_workers)
+            if use_processes
+            else ThreadPoolExecutor(max_workers=self.max_workers)
+        )
+
+    def process_items(
+        self,
+        items: List[T],
+        processor: Callable[[T], R],
+        timeout: Optional[float] = None
+    ) -> List[R]:
+        """Process items in parallel."""
+        results: List[R] = []
+        futures: List[concurrent.futures.Future] = []
+
+        # Submit tasks
+        for item in items:
+            future = self._executor.submit(processor, item)
+            futures.append(future)
+
+        # Collect results
+        for future in concurrent.futures.as_completed(futures, timeout=timeout):
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                logging.error(f"Error processing item: {e}")
+
+        return results
+
+    def process_stream(
+        self,
+        stream: Iterator[T],
+        processor: Callable[[T], R],
+        chunk_size: int = 1000,
+        timeout: Optional[float] = None
+    ) -> Generator[R, None, None]:
+        """Process stream in parallel."""
+        chunk: List[T] = []
+        for item in stream:
+            chunk.append(item)
+            if len(chunk) >= chunk_size:
+                yield from self.process_items(chunk, processor, timeout)
+                chunk = []
+
+        if chunk:
+            yield from self.process_items(chunk, processor, timeout)
+
+# Usage example
+def process_data(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Process data with performance optimizations."""
+    monitor = PerformanceMonitor()
+    cache = Cache(max_size=1000, max_memory=512.0)  # MB
+    processor = ParallelProcessor(use_processes=True)
+
+    @monitor.profile_function(memory_tracking=True)
+    def process_item(item: Dict[str, Any]) -> Dict[str, Any]:
+        # Check cache first
+        cache_key = hashlib.md5(str(item).encode()).hexdigest()
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            return cached_result
+
+        # Process item
+        result = {
+            "id": item["id"],
+            "processed": True,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+        # Cache result
+        cache.set(cache_key, result)
+        return result
+
+    # Process items in parallel
+    results = processor.process_items(items, process_item)
+
+    # Log performance metrics
+    metrics = monitor.get_metrics_summary()
+    logging.info(f"Performance metrics: {metrics}")
+
+    return results
+```
+</example>
+
+<example type="invalid">
+# Bad: Poor performance implementation
+```python
+def process_data(data):
+    # Missing performance monitoring
+    # Missing memory management
+    # Missing caching
+    # Missing parallel processing
+    # Missing chunking
+    result = []
+    for item in data:
+        result.append(process_item(item))
+    return result
+
+def process_item(item):
+    # Missing performance optimization
+    # Missing resource management
+    # Missing error handling
+    return item
+```
+</example>
+
+## Best Practices
+1. Profile code before optimizing
+2. Use appropriate data structures
+3. Implement memory management
+4. Use caching strategies
+5. Implement parallel processing
+6. Monitor performance metrics
+7. Use chunked processing
+8. Implement proper cleanup
+9. Use async operations
+10. Optimize I/O operations
+11. Use efficient algorithms
+12. Implement proper logging
+13. Monitor resource usage
+14. Use appropriate data types
+15. Regular performance testing
+
+## Technical Metadata
+- Category: Python Development
+- Priority: High
+- Dependencies:
+  - cProfile
+  - psutil
+  - concurrent.futures
+  - asyncio
+  - numpy
+  - pandas
+- Validation Requirements:
+  - Performance benchmarks
+  - Memory usage
+  - CPU utilization
+  - I/O efficiency
+  - Response time
+
+<version>1.1.0</version> 
