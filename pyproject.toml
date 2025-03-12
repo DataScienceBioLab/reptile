@@ -1,9 +1,9 @@
 [tool.poetry]
-name = "markov-rl"
+name = "educational-app"
 version = "0.1.0"
-description = "Markov Chain Analysis and Reinforcement Learning Implementation"
+description = "Interactive educational web application for learning about probability distributions"
 authors = ["Kevin Mok <mokkevin@msu.edu>"]
-packages = [{include = "markov_rl", from = "src"}]
+packages = [{include = "educational_app", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"

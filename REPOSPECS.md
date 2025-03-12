@@ -1,40 +1,16 @@
-# Educational App Specifications
+# Reptile: Data Science Project Seed Specifications
 
-## Specifications Overview
+## Overview
 
-This document provides an overview of the specifications for the educational app. Detailed specifications are available in the individual spec sheets located in the `specs/` directory.
-
-### Individual Specifications
-
-1. **Interactivity Specification**
-   - Location: [specs/01-interactivity.md](specs/01-interactivity.md)
-   - Focus: Requirements for interactive features within the app.
-
-2. **Educational Content Specification**
-   - Location: [specs/02-educational-content.md](specs/02-educational-content.md)
-   - Focus: Requirements for educational content, including exercises and accessibility.
-
-3. **Scalability Specification**
-   - Location: [specs/03-scalability.md](specs/03-scalability.md)
-   - Focus: Ensuring the app can scale effectively with user and data growth.
-
-4. **Best Practices Specification**
-   - Location: [specs/04-best-practices.md](specs/04-best-practices.md)
-   - Focus: Coding standards and practices to be followed.
-
-5. **Documentation Specification**
-   - Location: [specs/05-documentation.md](specs/05-documentation.md)
-   - Focus: Requirements for comprehensive and accessible documentation.
-
----
+Reptile is a Cursor seed project designed to provide a robust, standardized foundation for data science projects using Python. It serves as a template that can be quickly cloned and customized for various data science tasks while maintaining compatibility with modern data science libraries and best practices.
 
 ## Core Objectives
 
-- **Interactivity**: Enable users to interact with visualizations and simulations.
-- **Educational Content**: Provide clear explanations and context for all analyses.
-- **Scalability**: Support a wide range of educational topics and data sizes.
-- **Best Practices**: Maintain high coding standards and project organization.
-- **Documentation**: Ensure comprehensive documentation for both users and developers.
+- **Reproducibility**: Ensure consistent environment setup across different machines
+- **Modularity**: Enable easy integration of various data science libraries
+- **Scalability**: Support projects from small analyses to large-scale data processing
+- **Best Practices**: Enforce coding standards and project organization
+- **Documentation**: Maintain clear documentation and analysis tracking
 
 ## Technical Stack
 
@@ -48,8 +24,19 @@ This document provides an overview of the specifications for the educational app
 ### Primary Libraries
 
 #### Data Processing
-- Pandas (2.0+) for DataFrame operations
+- Pandas (2.0+) for traditional DataFrame operations
+- Polars (0.20+) for high-performance data processing
 - NumPy (1.24+) for numerical operations
+
+#### Machine Learning
+- scikit-learn (1.3+) for traditional ML algorithms
+- XGBoost (2.0+) for gradient boosting
+- LightGBM for high-performance gradient boosting
+
+#### Database Integration
+- SQLAlchemy (2.0+) for database operations
+- psycopg2-binary for PostgreSQL support
+- pymysql for MySQL support
 
 #### Visualization
 - Plotly (5.0+) for interactive visualizations
@@ -66,14 +53,14 @@ This document provides an overview of the specifications for the educational app
 ## Project Structure
 
 ```
-educational-app/
+reptile/
 ├── .cursor/              # Cursor-specific configurations
-├── docs/                 # Documentation
+├── .github/              # GitHub Actions and templates
 ├── data/                 # Data directory (gitignored)
 │   ├── raw/             # Original, immutable data
 │   ├── interim/         # Intermediate processing data
 │   └── processed/       # Final, analysis-ready data
-├── notebooks/           # Jupyter notebooks for educational content
+├── notebooks/           # Jupyter notebooks
 ├── src/                 # Source code
 │   ├── data/           # Data processing scripts
 │   ├── features/       # Feature engineering code
@@ -130,10 +117,11 @@ educational-app/
 - Type hints for all functions
 - README files in each major directory
 
-### Educational Content
-- Jupyter notebooks for interactive learning
+### Analysis Documentation
+- Jupyter notebooks for exploratory analysis
 - Markdown cells explaining analysis steps
-- Interactive exercises and quizzes
+- Requirements tracking in issues
+- Results documentation in project wiki
 
 ## Environment Management
 
@@ -158,7 +146,7 @@ educational-app/
 
 ## Performance Guidelines
 
-- Use efficient data structures for large datasets
+- Use Polars for large dataset operations
 - Implement proper memory management
 - Support for parallel processing
 - Caching strategies for repeated operations

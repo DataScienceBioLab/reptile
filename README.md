@@ -1,93 +1,82 @@
-# Reptile: Data Science Project Seed
+# Interactive Educational Form
 
-A robust, standardized foundation for data science projects using Python. This template provides a structured environment for data analysis, machine learning, and visualization tasks.
+An interactive educational web application built with Streamlit that helps users learn about probability distributions through visualization and hands-on exploration.
 
 ## Features
 
-- Modern Python data science stack (Pandas, Polars, scikit-learn, etc.)
-- Standardized project structure
-- Development tools and best practices
-- Comprehensive documentation
-- Environment management with Poetry
+- Interactive form for user input and customization
+- Real-time visualization of probability distributions
+- Dynamic parameter adjustment
+- Educational content and explanations
+- Interactive quizzes
+- Statistical analysis and insights
 
-## Quick Start
+## Supported Distributions
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/DataScienceBioLab/reptile.git
-   cd reptile
-   ```
+- Normal (Gaussian) Distribution
+- Uniform Distribution
+- Exponential Distribution
 
-2. Install Poetry (if not already installed):
-   ```bash
-   curl -sSL https://install.python-poetry.org | python3 -
-   ```
+## Installation
 
-3. Install dependencies:
-   ```bash
-   poetry install
-   ```
+1. Clone the repository:
+```bash
+git clone [repository-url]
+cd [repository-name]
+```
 
-4. Activate the virtual environment:
-   ```bash
-   poetry shell
-   ```
+2. Install dependencies using Poetry:
+```bash
+poetry install
+```
 
-5. Start developing:
-   ```bash
-   # Run tests
-   pytest
-   
-   # Start Jupyter notebook
-   jupyter notebook
-   ```
+## Usage
+
+1. Activate the virtual environment:
+```bash
+poetry shell
+```
+
+2. Run the Streamlit app:
+```bash
+streamlit run src/app.py
+```
+
+3. Open your browser and navigate to the URL shown in the terminal (usually http://localhost:8501)
 
 ## Project Structure
 
 ```
-reptile/
-├── data/                 # Data directory
-│   ├── raw/             # Original, immutable data
-│   ├── interim/         # Intermediate processing data
-│   └── processed/       # Final, analysis-ready data
-├── notebooks/           # Jupyter notebooks
-├── src/                 # Source code
-│   ├── data/           # Data processing scripts
-│   ├── features/       # Feature engineering code
-│   ├── models/         # Model training and prediction
-│   └── visualization/  # Visualization utilities
-└── tests/              # Test suite
+.
+├── src/
+│   ├── app.py              # Main Streamlit application
+│   ├── components/         # Reusable UI components
+│   ├── styles/            # CSS and styling
+│   └── utils/             # Utility functions
+│       └── data_utils.py  # Data generation and processing
+├── data/                  # Data directory
+├── docs/                  # Documentation
+├── tests/                # Test suite
+├── pyproject.toml        # Project dependencies
+└── README.md            # Project documentation
 ```
 
-## Development
+## Dependencies
 
-### Code Style
-- Follow PEP 8 guidelines
-- Use type hints
-- Format code with Black
-- Sort imports with isort
-
-### Testing
-- Write unit tests with pytest
-- Maintain minimum 80% test coverage
-- Run tests with `pytest`
-
-### Documentation
-- Use Google-style docstrings
-- Keep README files up to date
-- Document data transformations
-- Track analysis steps in notebooks
+- Python 3.10+
+- Streamlit 1.32.0
+- Plotly 5.19.0
+- NumPy 1.24.0
+- Pandas 2.0.0
+- Poetry for dependency management
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines.
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
-
-## Acknowledgments
-
-- Inspired by various data science project templates
-- Built with modern Python data science tools
-- Designed for use with Cursor IDE 
+MIT License - See [LICENSE](LICENSE) for details. 
