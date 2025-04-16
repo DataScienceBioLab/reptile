@@ -1,0 +1,84 @@
+---
+description: ENFORCE robust Python error handling standards for reliable and maintainable applications
+globs: ["**/*.py"]
+crossRefs:
+  - 001-rule-generator.mdc
+  - 002-rule-organization.mdc
+  - 1000-python-code-style.mdc
+  - 1004-python-documentation.mdc
+  - 1010-python-types.mdc
+alwaysApply: true
+---
+
+# Python Error Handling Standards
+
+## Context
+- When implementing error handling
+- When creating custom exceptions
+- When managing resource cleanup
+
+## Requirements
+
+### Exception Hierarchy
+- Implement a clear exception hierarchy
+- Use base exception classes for common error types
+
+### Error Recovery
+- Implement retry logic with exponential backoff
+- Use circuit breakers for external service calls
+
+### Resource Management
+- Use context managers for resource cleanup
+
+### Example
+```python
+class ApplicationError(Exception):
+    """Base exception for application errors."""
+    def __init__(self, message: str, code: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+class ValidationError(ApplicationError):
+    """Raised when data validation fails."""
+    def __init__(self, message: str, field: str) -> None:
+        super().__init__(message, "VALIDATION_ERROR")
+        self.field = field
+
+async def with_retry(func: Callable[..., Awaitable[T]], *args: Any, max_retries: int = 3) -> T:
+    """Execute function with retry logic."""
+    for attempt in range(max_retries):
+        try:
+            return await func(*args)
+        except ApplicationError:
+            if attempt < max_retries - 1:
+                await asyncio.sleep(2 ** attempt)
+            else:
+                raise
+
+class ResourceManager:
+    """Manages resource lifecycle with cleanup."""
+    async def __aenter__(self) -> 'ResourceManager':
+        return self
+
+    async def __aexit__(self, exc_type: Optional[Type[Exception]], exc_val: Optional[Exception], exc_tb: Optional[TracebackType]) -> None:
+        await self.cleanup()
+
+    async def cleanup(self) -> None:
+        """Cleanup resources."""
+        pass
+```
+
+## Best Practices
+1. Use a clear exception hierarchy
+2. Implement retry logic
+3. Use context managers for cleanup
+4. Log errors with context
+
+## Technical Metadata
+- Category: Python Development
+- Priority: High
+- Dependencies:
+  - Python 3.10+
+  - asyncio
+
+<version>1.0.0</version> 

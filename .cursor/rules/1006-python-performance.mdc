@@ -1,0 +1,81 @@
+---
+description: ENFORCE Python performance optimization standards for efficient and scalable applications
+globs: ["**/*.py", "**/*.pyi", "setup.cfg", "pyproject.toml"]
+crossRefs:
+  - 001-rule-generator.mdc
+  - 002-rule-organization.mdc
+  - 1000-python-code-style.mdc
+  - 1005-python-error-handling.mdc
+  - 1010-python-types.mdc
+alwaysApply: true
+---
+
+# Python Performance Standards
+
+## Context
+- When optimizing code performance
+- When profiling performance bottlenecks
+- When handling large datasets
+- When managing memory usage
+
+## Requirements
+
+### Performance Profiling
+- Use `cProfile` and `pstats` for profiling
+- Collect metrics on function execution
+- Analyze bottlenecks and optimize critical paths
+
+### Memory Management
+- Use generators for large data processing
+- Implement caching strategies
+- Use `weakref` for large objects
+- Monitor memory usage with `psutil`
+
+### I/O Optimization
+- Use asynchronous I/O for network operations
+- Batch database operations
+- Use efficient data formats (e.g., Parquet)
+
+### Example
+```python
+import cProfile
+import pstats
+import io
+from typing import Any, Callable
+
+# Profiling setup
+profiler = cProfile.Profile()
+profiler.enable()
+
+# Function to profile
+def process_data(data: list[Any]) -> list[Any]:
+    return [x * 2 for x in data]
+
+# Run and profile
+result = process_data(range(1000))
+profiler.disable()
+
+# Print stats
+stream = io.StringIO()
+ps = pstats.Stats(profiler, stream=stream).sort_stats('cumulative')
+ps.print_stats()
+print(stream.getvalue())
+```
+
+## Best Practices
+1. Profile before optimizing
+2. Use efficient data structures
+3. Implement caching
+4. Optimize critical paths
+5. Use asynchronous I/O
+6. Monitor memory usage
+
+## Technical Metadata
+- Category: Python Development
+- Priority: High
+- Dependencies:
+  - Python 3.10+
+  - cProfile
+  - psutil
+
+<version>1.0.0</version> 

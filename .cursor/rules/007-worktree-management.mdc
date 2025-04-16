@@ -1,0 +1,164 @@
+---
+description: ENFORCE technical standards for git worktree management, synchronization, and testing in parallel development
+globs: ["**/.git/**", "**/worktrees/**"]
+crossRefs:
+  - 005-git-commit-automation.mdc
+  - 009-shell-compatibility.mdc
+  - 011-team-communication.mdc
+alwaysApply: true
+---
+
+# Git Worktree Technical Standards
+
+## Context
+- When managing multiple parallel development streams
+- When handling worktree synchronization and conflicts
+- When implementing cross-worktree testing
+- When managing worktree-specific dependencies
+- When coordinating multiple Cursor instances
+
+## Requirements
+
+### Branch Management
+- Use semantic branch naming:
+  ```
+  feature/[worktree-name]/[feature-name]
+  bugfix/[worktree-name]/[issue-number]
+  hotfix/[worktree-name]/[issue-number]
+  release/[worktree-name]/[version]
+  ```
+
+### Worktree Synchronization
+- Implement proper sync workflow:
+  ```bash
+  # 1. Update main branch
+  git checkout main
+  git pull origin main
+
+  # 2. Update develop
+  git checkout develop
+  git pull origin develop
+  git merge main --no-ff
+
+  # 3. Update feature branches
+  git checkout feature/[worktree-name]/[feature]
+  git merge develop
+  git push origin feature/[worktree-name]/[feature]
+
+  # 4. Sync all worktrees
+  git worktree list | grep "feature/" | while read -r path hash branch; do
+    cd "$path"
+    git merge develop
+  done
+  ```
+
+### Conflict Resolution
+- Handle merge conflicts per worktree:
+  ```bash
+  # 1. Identify conflicting files
+  git status | grep "both modified:"
+
+  # 2. For each conflict:
+  #    - Resolve in primary worktree first
+  #    - Test in isolation
+  #    - Sync resolution to other worktrees
+  ```
+
+### Testing Strategy
+- Implement worktree-specific test suites:
+  ```rust
+  #[cfg(test)]
+  mod tests {
+      #[test]
+      #[cfg(feature = "worktree-ui")]
+      fn test_ui_specific() {
+          // UI-specific tests
+      }
+
+      #[test]
+      #[cfg(feature = "worktree-core")]
+      fn test_core_specific() {
+          // Core-specific tests
+      }
+  }
+  ```
+
+### Resource Management
+- Manage worktree-specific resources:
+  ```toml
+  # Cargo.toml per worktree
+  [features]
+  worktree-ui = []
+  worktree-core = []
+  worktree-mcp = []
+
+  [dependencies.worktree-specific]
+  optional = true
+  ```
+
+### Performance Considerations
+- Run parallel test suites:
+  ```bash
+  # Run tests for all worktrees
+  for worktree in $(git worktree list | grep "feature/" | cut -d' ' -f1); do
+    (cd "$worktree" && cargo test --features="$(basename $worktree)") &
+  done
+  wait
+  ```
+
+## Examples
+
+<example>
+# Good: Proper worktree synchronization
+# In main worktree
+git checkout develop
+git pull origin develop
+
+# In feature worktree
+cd ../groundhog-worktrees/ui
+git merge develop
+cargo test --features="worktree-ui"
+git commit -m "merge(ui): sync with develop"
+
+# Cross-worktree testing
+cd ../groundhog-worktrees/core
+cargo test --features="worktree-core,worktree-ui"
+</example>
+
+<example type="invalid">
+# Bad: Improper conflict resolution
+# Resolving conflicts in multiple worktrees simultaneously
+cd ../groundhog-worktrees/ui
+git merge develop  # Conflict in shared component
+
+cd ../groundhog-worktrees/core
+git merge develop  # Same conflict, different resolution
+</example>
+
+## Best Practices
+1. Maintain independent test suites per worktree
+2. Implement proper feature flags for worktree-specific code
+3. Handle conflicts in primary worktree first
+4. Run cross-worktree integration tests
+5. Monitor resource usage across worktrees
+6. Implement proper cleanup for abandoned worktrees
+7. Use worktree-specific CI/CD pipelines
+8. Maintain worktree-specific documentation
+9. Regular dependency audits per worktree
+10. Implement proper error tracking across worktrees
+
+## Technical Metadata
+- Category: Version Control
+- Priority: High
+- Dependencies:
+  - Git 2.25+
+  - Cargo workspaces
+  - Feature flags
+  - CI/CD integration
+- Testing Requirements:
+  - Unit tests per worktree
+  - Integration tests across worktrees
+  - Performance benchmarks
+  - Resource monitoring
+
+<version>1.1.0</version> 

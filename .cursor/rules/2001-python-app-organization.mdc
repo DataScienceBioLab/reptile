@@ -1,0 +1,173 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: ENFORCE unified app organization and shared dependency management for consistent and maintainable applications
+globs: src/**/*.py, pyproject.toml
+crossRefs:
+  - 002-rule-organization.mdc
+  - 1002-python-project-structure.mdc
+  - 1003-python-dependencies.mdc
+---
+# Python App Organization Standards
+
+## Context
+- When organizing multiple Streamlit apps
+- When managing shared dependencies
+- When creating new visualization modules
+- When structuring interactive applications
+
+## Requirements
+
+### App Organization
+- Use a unified entry point for multiple apps:
+  ```python
+  # run_app.py
+  import streamlit as st
+  import sys
+  import os
+
+  # Add src directory to Python path
+  sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
+
+  def main():
+      st.sidebar.title("Select App")
+      app_choice = st.sidebar.radio(
+          "Choose which app to run:",
+          ["App 1", "App 2"]
+      )
+      
+      if app_choice == "App 1":
+          from package.visualization.app1 import app1_main
+          app1_main()
+      else:
+          from package.visualization.app2 import app2_main
+          app2_main()
+
+  if __name__ == "__main__":
+      main()
+  ```
+
+### Dependency Management
+- Share dependencies in pyproject.toml:
+  ```toml
+  [tool.poetry.dependencies]
+  python = "^3.10"
+  streamlit = "^1.32.0"
+  plotly = "^5.19.0"
+  numpy = "^1.24.0"
+  # Shared dependencies for all apps
+  ```
+
+### Module Structure
+- Organize apps in visualization package:
+  ```
+  src/
+  └── package/
+      └── visualization/
+          ├── __init__.py
+          ├── app1.py
+          ├── app2.py
+          └── shared/
+              ├── __init__.py
+              └── components.py
+  ```
+
+### Shared Components
+- Create reusable components:
+  ```python
+  # shared/components.py
+  def create_sidebar_navigation():
+      """Create unified sidebar navigation."""
+      st.sidebar.title("Navigation")
+      return st.sidebar.radio(
+          "Choose a section:",
+          ["Section 1", "Section 2"]
+      )
+
+  def create_visualization(data):
+      """Create unified visualization component."""
+      # Shared visualization code
+      pass
+  ```
+
+## Examples
+
+<example>
+# Good: Unified app structure
+```python
+# run_app.py
+import streamlit as st
+from package.visualization import app1, app2
+
+def main():
+    st.sidebar.title("Select App")
+    app_choice = st.sidebar.radio(
+        "Choose which app to run:",
+        ["App 1", "App 2"]
+    )
+    
+    if app_choice == "App 1":
+        app1.run()
+    else:
+        app2.run()
+
+if __name__ == "__main__":
+    main()
+```
+
+```toml
+# pyproject.toml
+[tool.poetry.dependencies]
+python = "^3.10"
+streamlit = "^1.32.0"
+plotly = "^5.19.0"
+numpy = "^1.24.0"
+pandas = "^2.0.0"
+# Shared dependencies for all apps
+```
+</example>
+
+<example type="invalid">
+# Bad: Separate dependencies per app
+```toml
+# app1/requirements.txt
+streamlit==1.32.0
+plotly==5.19.0
+
+# app2/requirements.txt
+streamlit==1.32.0
+matplotlib==3.7.0
+# Duplicate dependencies
+# No unified management
+```
+</example>
+
+## Best Practices
+1. Use a single entry point for all apps
+2. Share dependencies in pyproject.toml
+3. Create reusable components
+4. Maintain consistent navigation
+5. Use unified styling
+6. Share common utilities
+7. Keep app-specific code isolated
+8. Use proper module organization
+9. Implement consistent error handling
+10. Maintain shared documentation
+
+## Technical Metadata
+- Category: Framework Standards
+- Priority: High
+- Dependencies:
+  - Poetry
+  - Streamlit
+  - Python 3.10+
+- Validation Requirements:
+  - Dependency consistency
+  - Module organization
+  - Component reusability
+  - Navigation structure
+
+<version>1.0.0</version>

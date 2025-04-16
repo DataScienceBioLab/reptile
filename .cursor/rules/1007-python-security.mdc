@@ -1,0 +1,102 @@
+---
+description: ENFORCE Python security best practices to prevent common vulnerabilities
+globs: ["**/*.py"]
+crossRefs:
+  - 1000-python-code-style.mdc
+  - 1003-python-dependencies.mdc
+alwaysApply: true
+---
+
+# Python Security Standards
+
+## Context
+- When handling sensitive data
+- When implementing authentication
+- When processing user input
+- When managing secrets
+- When making network requests
+
+## Requirements
+
+### Input Validation
+- Validate all user inputs
+- Use type hints and runtime checks
+- Sanitize data before processing
+- Implement proper access controls
+
+### Secrets Management
+- Use environment variables for secrets
+- Never commit secrets to version control
+- Use secure secret management services
+- Implement proper key rotation
+
+### Secure Coding
+- Use latest Python version
+- Keep dependencies updated
+- Use HTTPS for network calls
+- Implement proper error handling
+- Use secure random number generation
+
+### Common Vulnerabilities
+- Prevent SQL injection
+- Avoid command injection
+- Handle file paths securely
+- Implement proper authentication
+- Use secure password hashing
+
+## Example
+```python
+import os
+import secrets
+from pathlib import Path
+from typing import Any
+from argon2 import PasswordHasher
+from pydantic import BaseModel, SecretStr
+
+class UserCredentials(BaseModel):
+    username: str
+    password: SecretStr
+
+class SecurityManager:
+    def __init__(self) -> None:
+        self.hasher = PasswordHasher()
+        self.secret_key = os.environ.get("SECRET_KEY")
+        if not self.secret_key:
+            raise ValueError("SECRET_KEY environment variable not set")
+
+    def hash_password(self, password: str) -> str:
+        """Securely hash password."""
+        return self.hasher.hash(password)
+
+    def verify_password(self, hash: str, password: str) -> bool:
+        """Verify password against hash."""
+        try:
+            return self.hasher.verify(hash, password)
+        except Exception:
+            return False
+
+    def safe_file_path(self, user_input: str) -> Path:
+        """Create safe file path from user input."""
+        base_path = Path("/safe/path")
+        safe_name = "".join(c for c in user_input if c.isalnum())
+        return base_path / safe_name
+```
+
+## Best Practices
+1. Validate all inputs
+2. Use secure password hashing
+3. Implement proper access control
+4. Keep dependencies updated
+5. Use HTTPS everywhere
+6. Rotate secrets regularly
+
+## Technical Metadata
+- Category: Python Development
+- Priority: High
+- Dependencies:
+  - Python 3.10+
+  - pydantic
+  - argon2-cffi
+  - cryptography
+
+<version>1.0.0</version> 

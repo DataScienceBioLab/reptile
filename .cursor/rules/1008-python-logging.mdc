@@ -1,0 +1,103 @@
+---
+description: ENFORCE Python logging standards for consistent and effective application monitoring
+globs: ["**/*.py"]
+crossRefs:
+  - 1000-python-code-style.mdc
+  - 1005-python-error-handling.mdc
+alwaysApply: true
+---
+
+# Python Logging Standards
+
+## Context
+- When implementing logging
+- When debugging applications
+- When monitoring production code
+- When handling errors
+
+## Requirements
+
+### Logger Setup
+- Use module-level loggers
+- Configure appropriate log levels
+- Set consistent log formats
+- Use structured logging when possible
+
+### Log Levels
+- ERROR: Errors that need immediate attention
+- WARNING: Unexpected but handled situations
+- INFO: Important business events
+- DEBUG: Detailed debugging information
+- CRITICAL: System-wide critical issues
+
+### Formatting
+```python
+import logging
+import structlog
+from typing import Any
+
+# Basic setup
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Structured logging setup
+structlog.configure(
+    processors=[
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.stdlib.add_log_level,
+        structlog.processors.JSONRenderer()
+    ]
+)
+```
+
+## Example
+```python
+import logging
+from typing import Any, Dict
+
+logger = logging.getLogger(__name__)
+
+class DataProcessor:
+    def __init__(self, config: Dict[str, Any]) -> None:
+        self.config = config
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        
+    def process(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Process data with logging."""
+        self.logger.info("Starting data processing", extra={"data_size": len(data)})
+        
+        try:
+            result = self._transform_data(data)
+            self.logger.debug(
+                "Data transformation complete",
+                extra={"result_size": len(result)}
+            )
+            return result
+        except Exception as e:
+            self.logger.error(
+                "Data processing failed",
+                exc_info=True,
+                extra={"error": str(e)}
+            )
+            raise
+```
+
+## Best Practices
+1. Use module-level loggers
+2. Include contextual information
+3. Use appropriate log levels
+4. Implement structured logging
+5. Add error tracebacks
+6. Configure proper formatting
+
+## Technical Metadata
+- Category: Python Development
+- Priority: High
+- Dependencies:
+  - Python 3.10+
+  - structlog
+  - python-json-logger
+
+<version>1.0.0</version> 

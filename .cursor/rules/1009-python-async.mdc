@@ -1,0 +1,93 @@
+---
+description: ENFORCE Python async/await best practices and patterns for efficient asynchronous code
+globs: ["**/*.py"]
+crossRefs:
+  - 1000-python-code-style.mdc
+  - 1005-python-error-handling.mdc
+alwaysApply: true
+---
+
+# Python Async Standards
+
+## Context
+- When writing asynchronous code
+- When handling concurrent operations
+- When implementing I/O-bound tasks
+
+## Requirements
+
+### Async Basics
+- Use `async`/`await` syntax for asynchronous code
+- Mark coroutines with `async def`
+- Always await coroutines
+- Use `asyncio.run()` as the main entry point
+
+### Task Management
+- Use `asyncio.create_task()` for concurrent tasks
+- Handle task cancellation properly
+- Use `asyncio.gather()` for parallel execution
+- Implement proper timeout handling
+
+### Error Handling
+- Use `try`/`except` around await statements
+- Handle `asyncio.CancelledError`
+- Implement proper cleanup in `finally` blocks
+- Use `asyncio.shield()` for critical operations
+
+## Example
+```python
+import asyncio
+from typing import List, Dict
+
+async def fetch_data(url: str, timeout: float = 10.0) -> Dict:
+    """Fetch data from URL with timeout.
+
+    Args:
+        url: Target URL
+        timeout: Timeout in seconds
+
+    Returns:
+        Fetched data
+
+    Raises:
+        TimeoutError: If request times out
+    """
+    async with asyncio.timeout(timeout):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                return await response.json()
+
+async def main() -> None:
+    urls = ["http://api1.com", "http://api2.com"]
+    tasks = [asyncio.create_task(fetch_data(url)) for url in urls]
+    
+    try:
+        results = await asyncio.gather(*tasks)
+    except asyncio.CancelledError:
+        for task in tasks:
+            task.cancel()
+        raise
+    finally:
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Best Practices
+1. Always await coroutines
+2. Use proper task management
+3. Implement error handling
+4. Set appropriate timeouts
+5. Clean up resources properly
+6. Use connection pooling
+
+## Technical Metadata
+- Category: Python Development
+- Priority: High
+- Dependencies:
+  - Python 3.10+
+  - asyncio
+  - aiohttp
+
+<version>1.0.0</version> 

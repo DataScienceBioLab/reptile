@@ -1,0 +1,96 @@
+---
+description: ENFORCE Python type annotation standards and best practices for type safety
+globs: ["**/*.py", "**/*.pyi"]
+crossRefs:
+  - 1000-python-code-style.mdc
+  - 1004-python-documentation.mdc
+alwaysApply: true
+---
+
+# Python Type Standards
+
+## Context
+- When writing type annotations
+- When defining custom types
+- When using generic types
+- When creating type stubs
+
+## Requirements
+
+### Basic Types
+- Use built-in types: `str`, `int`, `float`, `bool`, `bytes`
+- Use collections: `list`, `dict`, `set`, `tuple`
+- Use `None` for optional values
+- Use union types with `|` (Python 3.10+)
+
+### Generic Types
+- Import from `typing`:
+  - `List`, `Dict`, `Set`, `Tuple`
+  - `Sequence`, `Mapping`, `Iterable`
+  - `TypeVar`, `Generic`, `Protocol`
+  - `Callable`, `Awaitable`
+
+### Custom Types
+- Use `TypeVar` for generic type parameters
+- Define protocols for duck typing
+- Create type aliases for complex types
+- Use `NewType` for type distinction
+
+### Type Checking
+- Run mypy for static type checking
+- Set strict mypy flags
+- Use reveal_type() for debugging
+- Create .pyi stub files when needed
+
+## Example
+```python
+from typing import TypeVar, Protocol, Sequence
+from dataclasses import dataclass
+
+T = TypeVar('T')
+K = TypeVar('K')
+V = TypeVar('V')
+
+class Comparable(Protocol):
+    def __lt__(self, other: Any) -> bool: ...
+
+@dataclass
+class DataProcessor(Generic[T]):
+    items: Sequence[T]
+    
+    def process(self, key: Callable[[T], K]) -> dict[K, T]:
+        """Process items and group by key.
+        
+        Args:
+            key: Function to extract key from item
+            
+        Returns:
+            Dictionary of items grouped by key
+        """
+        result: dict[K, T] = {}
+        for item in self.items:
+            result[key(item)] = item
+        return result
+
+def find_min(items: Sequence[Comparable]) -> Comparable | None:
+    """Find minimum item in sequence."""
+    return min(items) if items else None
+```
+
+## Best Practices
+1. Use type hints consistently
+2. Prefer composition over inheritance
+3. Use protocols for flexibility
+4. Keep type hierarchies simple
+5. Document type variables
+6. Run type checkers regularly
+
+## Technical Metadata
+- Category: Python Development
+- Priority: High
+- Dependencies:
+  - Python 3.10+
+  - mypy
+  - typing-extensions
+
+<version>1.0.0</version> 

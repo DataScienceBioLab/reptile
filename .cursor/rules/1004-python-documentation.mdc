@@ -1,0 +1,112 @@
+---
+description: ENFORCE comprehensive Python documentation standards for clear, maintainable, and accessible code documentation
+globs: ["**/*.py", "**/*.md", "**/docs/**/*.rst", "**/docs/**/*.md"]
+crossRefs:
+  - 001-rule-generator.mdc
+  - 002-rule-organization.mdc
+  - 400-md-docs.mdc
+  - 1000-python-code-style.mdc
+alwaysApply: true
+---
+
+# Python Documentation Standards
+
+## Context
+- When writing Python code documentation
+- When creating project documentation
+- When documenting APIs and interfaces
+
+## Requirements
+
+### Code Documentation
+- Use Google-style docstrings for all public APIs
+- Include Args, Returns, Raises, and Examples
+
+### Module Documentation
+- Include module-level docstrings with overview and examples
+
+### Project Documentation
+- Maintain comprehensive project documentation in README.md
+- Include sections: Overview, Installation, Usage, API Reference, Contributing, License
+
+### API Documentation
+- Document all public APIs with examples
+
+### Example
+```python
+"""Machine learning utilities for data processing and model training.
+
+This module provides tools for:
+1. Data preprocessing
+2. Feature engineering
+3. Model training
+
+Example:
+    >>> from ml_utils import DataProcessor, train_model
+    >>> processor = DataProcessor()
+    >>> clean_data = processor.clean(raw_data)
+    >>> model = RandomForestClassifier()
+    >>> metrics = train_model(model, clean_data, target)
+"""
+
+from typing import Any, Dict, Optional
+import numpy as np
+import pandas as pd
+from sklearn.base import BaseEstimator
+
+class DataProcessor:
+    """Process and transform data for machine learning tasks.
+
+    Methods for data preprocessing and feature engineering.
+
+    Example:
+        >>> processor = DataProcessor(config={'normalize': True})
+        >>> clean_data = processor.process(raw_data)
+    """
+
+    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+        """Initialize the data processor.
+
+        Args:
+            config: Processing configuration
+
+        Example:
+            >>> processor = DataProcessor(config={'normalize': True})
+        """
+        self.config = config or {}
+
+    def process(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Process input data according to configuration.
+
+        Args:
+            data: Input DataFrame to process
+
+        Returns:
+            Processed DataFrame
+
+        Raises:
+            ValueError: If input data is invalid
+
+        Example:
+            >>> df = pd.DataFrame({'col1': [1, 2, 3]})
+            >>> processed = processor.process(df)
+        """
+        if data.empty:
+            raise ValueError("Input DataFrame cannot be empty")
+        return data
+```
+
+## Best Practices
+1. Use comprehensive docstrings
+2. Maintain clear project documentation
+3. Include examples in API docs
+4. Keep documentation up to date
+
+## Technical Metadata
+- Category: Python Development
+- Priority: High
+- Dependencies:
+  - Python 3.10+
+  - Sphinx
+
+<version>1.0.0</version> 
